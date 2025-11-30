@@ -1,16 +1,22 @@
-# Dockerfile for Railway - This should NOT be used
-# Railway should use backend/Dockerfile instead
-# Set Root Directory to "backend" in Railway dashboard!
+# Dockerfile for Railway
+# Copies backend files and starts the server
 
 FROM node:18
 
 WORKDIR /app
 
-# This Dockerfile is a fallback - Railway should use backend/ directory
+# Copy package files
 COPY backend/package*.json ./
+
+# Install dependencies
 RUN npm ci --only=production
+
+# Copy all backend files
 COPY backend/ ./
 
+# Expose port (Railway will set PORT automatically)
 EXPOSE 3000
+
+# Start the server (no cd needed - we're already in /app)
 CMD ["node", "server.js"]
 

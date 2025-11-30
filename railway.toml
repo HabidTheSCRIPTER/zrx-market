@@ -1,9 +1,5 @@
 # Railway configuration file
-# This tells Railway how to deploy
-
-[build]
-builder = "nixpacks"
-
+# Railway should use Dockerfile now, but if it uses this:
 [deploy]
-startCommand = "cd backend && npm start"
+startCommand = "node server.js"
 

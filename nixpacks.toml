@@ -1,5 +1,5 @@
 # Nixpacks configuration for Railway
-# This works even if Root Directory isn't set - it runs from root and goes to backend
+# Railway should use Dockerfile instead, but this is a fallback
 
 [phases.setup]
 nixPkgs = ["nodejs_18", "npm-9_x"]
@@ -11,6 +11,7 @@ cmds = ["npm install", "cd backend && npm ci"]
 [phases.build]
 cmds = []
 
+# Start command - Railway should use Dockerfile CMD instead
 [start]
-cmd = "cd backend && npm start"
+cmd = "cd backend && node server.js"
 
