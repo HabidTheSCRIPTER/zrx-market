@@ -1,0 +1,19 @@
+# Nixpacks configuration for Railway
+# This tells Railway NOT to auto-detect and build from root
+# Instead, it will use the backend directory configuration
+
+[phases.setup]
+nixPkgs = ["nodejs_18", "npm-9_x"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+# No build phase - backend doesn't need building
+# Railway should set Root Directory to "backend" and Start Command to "node server.js"
+
+[phases.build]
+cmds = []
+
+[start]
+cmd = "node server.js"
+

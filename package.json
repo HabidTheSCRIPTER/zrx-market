@@ -11,7 +11,7 @@
     "dev:bot": "cd bot && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
     "seed": "cd backend && node scripts/seed.js",
-    "build": "cd frontend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
     "deploy": "bash deploy.sh",
     "start:prod": "pm2 start ecosystem.config.js",
     "stop:prod": "pm2 stop ecosystem.config.js",
