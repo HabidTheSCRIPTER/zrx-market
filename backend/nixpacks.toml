@@ -11,6 +11,7 @@ cmds = ["npm ci"]
 [phases.build]
 cmds = []
 
+# Use npm start which runs "node server.js" from package.json
 [start]
 cmd = "npm start"
 
