@@ -1,0 +1,279 @@
+.admin {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.admin h1 {
+  margin-bottom: 2rem;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #333;
+  flex-wrap: wrap;
+}
+
+.admin-tabs button {
+  background: none;
+  border: none;
+  color: #ccc;
+  padding: 1rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.admin-tabs button:hover {
+  color: #fff;
+}
+
+.admin-tabs button.active {
+  color: #5865F2;
+  border-bottom-color: #5865F2;
+}
+
+.admin-section {
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 2rem;
+}
+
+.admin-section h2 {
+  margin-bottom: 1.5rem;
+}
+
+.verify-form {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.verify-form input {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.75rem;
+  background-color: #000;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #fff;
+}
+
+.verify-form button {
+  background-color: #5865F2;
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.reports-list,
+.blacklist-list,
+.logs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.report-card,
+.blacklist-item,
+.log-item {
+  background-color: #000;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 1rem;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.status-pending {
+  background-color: #ffc107;
+  color: #000;
+}
+
+.status-reviewed {
+  background-color: #5865F2;
+  color: #fff;
+}
+
+.status-resolved {
+  background-color: #00D166;
+  color: #000;
+}
+
+.report-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.discord-embed-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.discord-embed-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.discord-embed-form label {
+  font-weight: 500;
+  color: #fff;
+}
+
+.discord-embed-form input,
+.discord-embed-form textarea {
+  padding: 0.75rem;
+  background-color: #000;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.discord-embed-form input:focus,
+.discord-embed-form textarea:focus {
+  outline: none;
+  border-color: #5865F2;
+}
+
+.discord-embed-form .form-hint {
+  font-size: 0.85rem;
+  color: #888;
+  font-style: italic;
+  margin-top: -0.25rem;
+}
+
+.discord-embed-form .submit-btn {
+  background-color: #5865F2;
+  color: #fff;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  align-self: flex-start;
+}
+
+.discord-embed-form .submit-btn:hover:not(:disabled) {
+  background-color: #4752C4;
+}
+
+.discord-embed-form .submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.report-actions button {
+  background-color: #5865F2;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.blacklist-form {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.blacklist-form input {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.75rem;
+  background-color: #000;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #fff;
+}
+
+.blacklist-form button {
+  background-color: #dc3545;
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.blacklist-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.blacklist-item button {
+  background-color: #dc3545;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.log-item {
+  border-left: 3px solid #5865F2;
+}
+
+.log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.log-action {
+  background-color: #5865F2;
+  color: #fff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.loading,
+.no-data {
+  text-align: center;
+  padding: 3rem;
+  color: #666;
+}
+
+.message {
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.message.success {
+  background-color: #00D166;
+  color: #000;
+}
+
+.message.error {
+  background-color: #dc3545;
+  color: #fff;
+}
+

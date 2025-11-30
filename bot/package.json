@@ -1,0 +1,19 @@
+{
+  "name": "zrx-market-bot",
+  "version": "1.0.0",
+  "description": "Discord bot for ZRX Market",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.3.1",
+    "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
+

@@ -1,0 +1,245 @@
+.item-config-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.item-config-modal {
+  background: linear-gradient(135deg, #1a0d2e 0%, #2d1b4e 100%);
+  border: 2px solid rgba(139, 92, 246, 0.5);
+  border-radius: 20px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease;
+  overflow: hidden;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.item-config-header {
+  padding: 24px 30px;
+  border-bottom: 2px solid rgba(139, 92, 246, 0.3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+}
+
+.item-config-item-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.item-config-image {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: rgba(139, 92, 246, 0.1);
+  padding: 8px;
+}
+
+.item-config-item-info h3 {
+  margin: 0;
+  color: white;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.item-config-category {
+  margin: 4px 0 0 0;
+  color: #8b5cf6;
+  font-size: 0.9rem;
+}
+
+.item-config-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  font-size: 2rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.item-config-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(90deg);
+}
+
+.item-config-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 30px;
+}
+
+.config-field {
+  margin-bottom: 24px;
+}
+
+.config-field label {
+  display: block;
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.config-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(139, 92, 246, 0.15);
+  border: 2px solid rgba(139, 92, 246, 0.4);
+  border-radius: 10px;
+  color: white;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.config-input:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.25);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
+}
+
+.config-input::placeholder {
+  color: #6b7280;
+}
+
+.value-input-group {
+  display: flex;
+  gap: 12px;
+}
+
+.value-input-group .config-input {
+  flex: 1;
+}
+
+.calculated-value-display {
+  padding: 16px;
+  background: rgba(67, 181, 129, 0.15);
+  border: 2px solid rgba(67, 181, 129, 0.4);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.value-amount {
+  color: #43b581;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.value-unit {
+  color: #43b581;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.no-value {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.item-config-footer {
+  padding: 20px 30px;
+  border-top: 2px solid rgba(139, 92, 246, 0.3);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.cancel-btn,
+.save-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+}
+
+.save-btn:hover {
+  background: linear-gradient(135deg, #9f70ff 0%, #8b5cf6 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
+/* Scrollbar styling */
+.item-config-content::-webkit-scrollbar {
+  width: 10px;
+}
+
+.item-config-content::-webkit-scrollbar-track {
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: 10px;
+}
+
+.item-config-content::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.5);
+  border-radius: 10px;
+}
+
+.item-config-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.7);
+}
+

@@ -1,0 +1,263 @@
+.templates-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.templates-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.templates-header h1 {
+  color: #e0e0e0;
+}
+
+.create-template-btn {
+  padding: 12px 24px;
+  background-color: #7289DA;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.create-template-btn:hover {
+  background-color: #677BC4;
+}
+
+.template-form-container {
+  background-color: #36393f;
+  padding: 2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+.template-form-container h2 {
+  color: #e0e0e0;
+  margin-bottom: 1.5rem;
+}
+
+.template-form .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.template-form label {
+  display: block;
+  color: #e0e0e0;
+  margin-bottom: 0.5rem;
+}
+
+.template-form input[type="text"] {
+  width: 100%;
+  padding: 10px;
+  background-color: #2f3136;
+  border: 1px solid #4f545c;
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-size: 1rem;
+}
+
+.template-form .form-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background-color: #2f3136;
+  border-radius: 8px;
+}
+
+.template-form .form-section h3 {
+  color: #7289DA;
+  margin-bottom: 1rem;
+}
+
+.item-input-group {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr 1fr auto;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  align-items: center;
+}
+
+.item-input-group select,
+.item-input-group input {
+  padding: 8px;
+  background-color: #36393f;
+  border: 1px solid #4f545c;
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-size: 0.9rem;
+}
+
+.item-input-group select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.item-input-group button {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: background-color 0.2s;
+}
+
+.item-input-group button:hover {
+  background-color: #c82333;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.form-actions button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.form-actions button[type="submit"] {
+  background-color: #7289DA;
+  color: white;
+}
+
+.form-actions button[type="submit"]:hover {
+  background-color: #677BC4;
+}
+
+.form-actions button[type="button"] {
+  background-color: #4f545c;
+  color: #e0e0e0;
+}
+
+.form-actions button[type="button"]:hover {
+  background-color: #5d6168;
+}
+
+.templates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.template-card {
+  background-color: #2f3136;
+  border: 1px solid #36393f;
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.template-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.template-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #36393f;
+}
+
+.template-card-header h3 {
+  color: #e0e0e0;
+  margin: 0;
+}
+
+.template-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.template-actions button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.2s;
+}
+
+.use-btn {
+  background-color: #00D166;
+  color: white;
+}
+
+.use-btn:hover {
+  background-color: #00B855;
+}
+
+.edit-btn {
+  background-color: #7289DA;
+  color: white;
+}
+
+.edit-btn:hover {
+  background-color: #677BC4;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+}
+
+.delete-btn:hover {
+  background-color: #c82333;
+}
+
+.template-content {
+  color: #e0e0e0;
+}
+
+.template-section {
+  margin-bottom: 1rem;
+}
+
+.template-section strong {
+  color: #7289DA;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.items-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.item-tag {
+  background-color: #36393f;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.empty-templates {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #a0a0a0;
+}
+
+.loading {
+  text-align: center;
+  padding: 4rem;
+  color: #a0a0a0;
+}
+
+
+
+

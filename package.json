@@ -1,0 +1,27 @@
+{
+  "name": "zrx-market",
+  "version": "1.0.0",
+  "description": "ZRX MARKET - Discord Trading & Middleman Website",
+  "main": "index.js",
+  "scripts": {
+    "install:all": "npm install && cd backend && npm install && cd ../bot && npm install && cd ../frontend && npm install",
+    "setup": "npm run install:all && npm run seed",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:bot\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:bot": "cd bot && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "seed": "cd backend && node scripts/seed.js",
+    "build": "cd frontend && npm run build",
+    "deploy": "bash deploy.sh",
+    "start:prod": "pm2 start ecosystem.config.js",
+    "stop:prod": "pm2 stop ecosystem.config.js",
+    "restart:prod": "pm2 restart ecosystem.config.js"
+  },
+  "keywords": ["discord", "trading", "middleman"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+
