@@ -135,11 +135,38 @@ async function startServer() {
     if (process.env.DISCORD_BOT_TOKEN) {
       try {
         // Start bot in the same process
+        // Try multiple possible paths depending on deployment structure
         const path = require('path');
-        require(path.join(__dirname, '../bot/index.js'));
-        console.log('🤖 Discord bot starting...');
+        const fs = require('fs');
+        
+        let botPath = null;
+        // Try different possible paths
+        const possiblePaths = [
+          path.join(__dirname, '../bot/index.js'),  // Local dev: backend/../bot/index.js
+          path.join(process.cwd(), 'bot/index.js'), // Railway: /app/bot/index.js
+          path.join(__dirname, '../../bot/index.js'), // Alternative structure
+          '/app/bot/index.js', // Absolute path for Railway
+          path.join(process.cwd(), '../bot/index.js') // Another alternative
+        ];
+        
+        for (const testPath of possiblePaths) {
+          if (fs.existsSync(testPath)) {
+            botPath = testPath;
+            break;
+          }
+        }
+        
+        if (botPath) {
+          console.log(`🤖 Starting Discord bot from: ${botPath}`);
+          require(botPath);
+          console.log('🤖 Discord bot module loaded');
+        } else {
+          console.error('❌ Could not find bot/index.js. Tried paths:', possiblePaths);
+          // Don't exit - server can still run without bot
+        }
       } catch (botError) {
         console.error('❌ Failed to start Discord bot:', botError.message);
+        console.error('Bot error stack:', botError.stack);
         // Don't exit - server can still run without bot
       }
     } else {
