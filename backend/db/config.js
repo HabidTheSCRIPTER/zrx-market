@@ -123,7 +123,7 @@ function initDatabase() {
             hasError = true;
             errors.push({ table: 'trades', error: err });
           } else {
-            // Add missing columns if table already exists (migration)
+            // Add missing isCrossTrade column if table already exists (migration)
             db.run(`ALTER TABLE trades ADD COLUMN isCrossTrade INTEGER DEFAULT 0`, (alterErr) => {
               // Ignore error if column already exists
               if (alterErr && !alterErr.message.includes('duplicate column')) {
@@ -225,11 +225,38 @@ function initDatabase() {
             hasError = true;
             errors.push({ table: 'messages', error: err });
           } else {
-            // Add missing columns if table already exists (migration)
+            // Add missing isRead column if table already exists (migration)
             db.run(`ALTER TABLE messages ADD COLUMN isRead INTEGER DEFAULT 0`, (alterErr) => {
               // Ignore error if column already exists
               if (alterErr && !alterErr.message.includes('duplicate column')) {
                 console.warn('⚠️  Could not add isRead column (may already exist):', alterErr.message);
+              }
+            });
+          }
+        });
+
+        // Notifications table
+        db.run(`CREATE TABLE IF NOT EXISTS notifications (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          userId TEXT NOT NULL,
+          type TEXT NOT NULL,
+          title TEXT NOT NULL,
+          message TEXT NOT NULL,
+          link TEXT,
+          isRead INTEGER DEFAULT 0,
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (userId) REFERENCES users(discordId)
+        )`, (err) => {
+          if (err) {
+            console.error('❌ Error creating notifications table:', err.message);
+            hasError = true;
+            errors.push({ table: 'notifications', error: err });
+          } else {
+            // Add missing isRead column if table already exists (migration)
+            db.run(`ALTER TABLE notifications ADD COLUMN isRead INTEGER DEFAULT 0`, (alterErr) => {
+              // Ignore error if column already exists
+              if (alterErr && !alterErr.message.includes('duplicate column')) {
+                console.warn('⚠️  Could not add isRead column to notifications (may already exist):', alterErr.message);
               }
             });
           }
