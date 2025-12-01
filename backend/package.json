@@ -1,7 +1,7 @@
 {
   "name": "zrx-market-backend",
   "version": "1.0.0",
-  "description": "Backend API for ZRX Market",
+  "description": "Backend API for ZRX Market - Railway Build Fix",
   "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
