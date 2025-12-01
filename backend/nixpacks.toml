@@ -1,17 +1,24 @@
 # Nixpacks configuration for Railway - Backend Service
-# This file tells Railway how to build and start the backend
+# This builds both frontend and backend
 
 [phases.setup]
 nixPkgs = ["nodejs_18", "npm-9_x"]
 
+# Install frontend dependencies and build
 [phases.install]
-cmds = ["npm ci"]
+cmds = [
+  "cd ../frontend && npm install",
+  "cd ../frontend && npm run build",
+  "cd ../backend && npm ci"
+]
 
-# No build needed for backend - just install dependencies
+# Copy frontend build to backend dist folder
 [phases.build]
-cmds = []
+cmds = [
+  "mkdir -p dist",
+  "cp -r ../frontend/dist/* ./dist/"
+]
 
 # Use npm start which runs "node server.js" from package.json
 [start]
 cmd = "npm start"
-
