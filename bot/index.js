@@ -11,16 +11,42 @@ const DATA_DIR = path.join(__dirname, '../data');
 if (!fs.existsSync(DATA_DIR)) {
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
+    console.log('✅ Created data directory:', DATA_DIR);
   } catch (mkdirErr) {
-    console.warn('Could not create data directory:', mkdirErr.message);
+    console.warn('⚠️  Could not create data directory:', mkdirErr.message);
+    // Try using current working directory as fallback
+    const fallbackDir = path.join(process.cwd(), 'data');
+    try {
+      if (!fs.existsSync(fallbackDir)) {
+        fs.mkdirSync(fallbackDir, { recursive: true });
+        console.log('✅ Created fallback data directory:', fallbackDir);
+      }
+    } catch (fallbackErr) {
+      console.warn('⚠️  Could not create fallback data directory:', fallbackErr.message);
+    }
   }
 }
 
 const DB_PATH = path.join(DATA_DIR, 'zrx-market.db');
-const db = new sqlite3.Database(DB_PATH, (err) => {
+console.log('📁 Database path:', DB_PATH);
+console.log('📁 Current working directory:', process.cwd());
+console.log('📁 __dirname:', __dirname);
+
+const db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
   if (err) {
-    console.error('Bot: Error opening database:', err.message);
-    console.error('Database path:', DB_PATH);
+    console.error('❌ Bot: Error opening database:', err.message);
+    console.error('❌ Database path:', DB_PATH);
+    console.error('❌ Error code:', err.code, 'Error number:', err.errno);
+  } else {
+    console.log('✅ Bot database opened successfully');
+    // Test if database is writable
+    db.run('PRAGMA journal_mode = WAL;', (pragmaErr) => {
+      if (pragmaErr) {
+        console.warn('⚠️  Warning: Could not set WAL mode, database may be read-only:', pragmaErr.message);
+      } else {
+        console.log('✅ Database is writable (WAL mode enabled)');
+      }
+    });
   }
 });
 

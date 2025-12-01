@@ -20,33 +20,63 @@ class CasinoManager {
       // Use a timeout to prevent hanging if database is locked
       const timeout = setTimeout(() => {
         console.warn('⚠️  Casino database initialization timeout');
+        this.casinoEnabled = false;
         resolve(); // Resolve instead of reject
       }, 5000);
 
+      // Check if database is available and writable
+      if (!this.db) {
+        console.warn('⚠️  Casino database not available');
+        this.casinoEnabled = false;
+        clearTimeout(timeout);
+        resolve();
+        return;
+      }
+
       try {
-        this.db.run(`
-          CREATE TABLE IF NOT EXISTS casino_balances (
-            discordId TEXT PRIMARY KEY,
-            balance INTEGER DEFAULT 1000,
-            totalWon INTEGER DEFAULT 0,
-            totalLost INTEGER DEFAULT 0,
-            gamesPlayed INTEGER DEFAULT 0,
-            lastDaily TEXT,
-            createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-          )
-        `, (err) => {
-          clearTimeout(timeout);
-          if (err) {
-            console.error('Error creating casino_balances table:', err.message);
-            // Don't reject - allow bot to continue without casino features
-            console.warn('⚠️  Casino features will be disabled due to database error');
+        // Test if database is writable by running a simple query
+        this.db.run('PRAGMA journal_mode = WAL;', (pragmaErr) => {
+          if (pragmaErr) {
+            console.error('Error setting database journal mode:', pragmaErr.message);
+            console.warn('⚠️  Casino features will be disabled - database may be read-only');
             this.casinoEnabled = false;
-            resolve(); // Resolve instead of reject to prevent bot crash
-          } else {
-            console.log('✅ Casino database initialized');
+            clearTimeout(timeout);
             resolve();
+            return;
           }
+
+          // Now try to create the table
+          this.db.run(`
+            CREATE TABLE IF NOT EXISTS casino_balances (
+              discordId TEXT PRIMARY KEY,
+              balance INTEGER DEFAULT 1000,
+              totalWon INTEGER DEFAULT 0,
+              totalLost INTEGER DEFAULT 0,
+              gamesPlayed INTEGER DEFAULT 0,
+              lastDaily TEXT,
+              createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+              updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+          `, (err) => {
+            clearTimeout(timeout);
+            if (err) {
+              console.error('Error creating casino_balances table:', err.message);
+              console.error('Error code:', err.code, 'Error number:', err.errno);
+              // Check if it's a permission/I/O error
+              if (err.code === 'SQLITE_IOERR' || err.errno === 10) {
+                console.warn('⚠️  Database I/O error detected - this may be due to filesystem restrictions on Railway');
+                console.warn('⚠️  Casino features will be disabled. Database may be in a read-only location.');
+              } else {
+                console.warn('⚠️  Casino features will be disabled due to database error');
+              }
+              this.casinoEnabled = false;
+              resolve(); // Resolve instead of reject to prevent bot crash
+            } else {
+              console.log('✅ Casino database initialized');
+              this.casinoEnabled = true;
+              resolve();
+            }
+          });
         });
       } catch (syncErr) {
         clearTimeout(timeout);
