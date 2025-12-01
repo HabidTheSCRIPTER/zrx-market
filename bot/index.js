@@ -543,7 +543,7 @@ class MiddlemanBot extends EventEmitter {
         if (needsDefer) {
           return await interaction.editReply({ content: `❌ ${snarky}` });
         } else {
-          return await interaction.reply({ content: `❌ ${snarky}`, ephemeral: true });
+          return await interaction.reply({ content: `❌ ${snarky}`, flags: 64 }); // 64 = EPHEMERAL flag
         }
       }
     }
@@ -626,12 +626,12 @@ class MiddlemanBot extends EventEmitter {
           await this.handleSlashCasinoReset(interaction);
           break;
         default:
-          await interaction.reply({ content: `❌ Unknown command. What the fuck are you trying to do?`, ephemeral: true });
+          await interaction.reply({ content: `❌ Unknown command. What the fuck are you trying to do?`, flags: 64 }); // 64 = EPHEMERAL flag
       }
     } catch (error) {
       console.error('Slash command error:', error);
       const snarky = getSnarkyResponse('error');
-      await interaction.reply({ content: `❌ ${snarky} Error: ${error.message}`, ephemeral: true }).catch(() => {});
+      await interaction.reply({ content: `❌ ${snarky} Error: ${error.message}`, flags: 64 }).catch(() => {}); // 64 = EPHEMERAL flag
     }
   }
 
@@ -1881,12 +1881,12 @@ class MiddlemanBot extends EventEmitter {
   async handleRequestMoreInfo(interaction, reportId) {
     try {
       if (!interaction.member.permissions.has('MANAGE_MESSAGES')) {
-        return interaction.reply({ content: '❌ You do not have permission to perform this action.', ephemeral: true });
+        return interaction.reply({ content: '❌ You do not have permission to perform this action.', flags: 64 }); // 64 = EPHEMERAL flag
       }
 
       const report = await dbHelpers.get('SELECT * FROM reports WHERE id = ?', [reportId]);
       if (!report) {
-        return interaction.reply({ content: '❌ Report not found.', ephemeral: true });
+        return interaction.reply({ content: '❌ Report not found.', flags: 64 }); // 64 = EPHEMERAL flag
       }
 
       await dbHelpers.run(
@@ -1944,13 +1944,13 @@ class MiddlemanBot extends EventEmitter {
 
       await interaction.followUp({
         content: `✅ More info requested for Report #${reportId}.\n\n**To chat with the accused person:**\n1. Click "Chat with Accused" button\n2. Or visit: ${process.env.BASE_URL || 'http://localhost:5173'}/admin/reports/${report.id}?chat=true`,
-        ephemeral: true
+        flags: 64 // 64 = EPHEMERAL flag
       });
 
     } catch (error) {
       console.error('Error handling request more info:', error);
       if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({ content: '❌ An error occurred while processing your request.', ephemeral: true });
+        await interaction.reply({ content: '❌ An error occurred while processing your request.', flags: 64 }); // 64 = EPHEMERAL flag
       }
     }
   }
@@ -2024,12 +2024,12 @@ class MiddlemanBot extends EventEmitter {
   async handleChatWithAccused(interaction, reportId) {
     try {
       if (!interaction.member.permissions.has('MANAGE_MESSAGES')) {
-        return interaction.reply({ content: '❌ You do not have permission to perform this action.', ephemeral: true });
+        return interaction.reply({ content: '❌ You do not have permission to perform this action.', flags: 64 }); // 64 = EPHEMERAL flag
       }
 
       const report = await dbHelpers.get('SELECT * FROM reports WHERE id = ?', [reportId]);
       if (!report) {
-        return interaction.reply({ content: '❌ Report not found.', ephemeral: true });
+        return interaction.reply({ content: '❌ Report not found.', flags: 64 }); // 64 = EPHEMERAL flag
       }
 
       await dbHelpers.run(
@@ -2055,7 +2055,7 @@ class MiddlemanBot extends EventEmitter {
         if (thread) {
           return interaction.reply({
             content: `💬 **Bridge Already Active**\n\nA chat thread already exists for this report:\n<#${existingSession.threadId}>\n\nYou can chat there, and messages will sync with the website.`,
-            ephemeral: true
+            flags: 64 // 64 = EPHEMERAL flag
           });
         }
       }
@@ -2066,7 +2066,7 @@ class MiddlemanBot extends EventEmitter {
       );
 
       if (!accusedUser) {
-        return interaction.reply({ content: '❌ Accused user not found in database.', ephemeral: true });
+        return interaction.reply({ content: '❌ Accused user not found in database.', flags: 64 }); // 64 = EPHEMERAL flag
       }
 
       const reporter = await dbHelpers.get(
@@ -2078,7 +2078,7 @@ class MiddlemanBot extends EventEmitter {
       const reportsChannel = await this.client.channels.fetch(reportsChannelId);
 
       if (!reportsChannel) {
-        return interaction.reply({ content: '❌ Reports channel not found.', ephemeral: true });
+        return interaction.reply({ content: '❌ Reports channel not found.', flags: 64 }); // 64 = EPHEMERAL flag
       }
 
       const initialMessage = await reportsChannel.send({
@@ -2105,7 +2105,7 @@ class MiddlemanBot extends EventEmitter {
 
       await interaction.reply({
         content: `✅ **Bridge Created!**\n\nA private thread has been created: <#${thread.id}>\n\nYou can now chat there, and messages will automatically sync with the website. The accused user (<@${report.accusedDiscordId}>) has been added to the thread.`,
-        ephemeral: true
+        flags: 64 // 64 = EPHEMERAL flag
       });
 
       await thread.send(`👋 **Bridge Active**\n\nThis thread is now connected to the website. Messages you send here will appear on the website as if from ${interaction.user.username}. Messages from the website will appear here as if from ${accusedUser.username}.`);
@@ -2113,7 +2113,7 @@ class MiddlemanBot extends EventEmitter {
     } catch (error) {
       console.error('Error handling chat with accused:', error);
       if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({ content: '❌ An error occurred while processing your request.', ephemeral: true });
+        await interaction.reply({ content: '❌ An error occurred while processing your request.', flags: 64 }); // 64 = EPHEMERAL flag
       }
     }
   }
@@ -2861,7 +2861,7 @@ class MiddlemanBot extends EventEmitter {
       .setFooter({ text: 'ZRX Market Bot - Made with attitude' })
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: 64 }); // 64 = EPHEMERAL flag
   }
 
   async handleSlashStats(interaction) {
