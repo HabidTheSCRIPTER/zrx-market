@@ -67,29 +67,6 @@ function runMigrations() {
     let migrationsRun = 0;
     let migrationsSucceeded = 0;
 
-    // Check and add isCrossTrade to trades
-    db.all(`PRAGMA table_info(trades)`, [], (err, columns) => {
-      if (!err && columns) {
-        const hasColumn = columns.some(col => col.name === 'isCrossTrade');
-        if (!hasColumn) {
-          migrationsRun++;
-          db.run(`ALTER TABLE trades ADD COLUMN isCrossTrade INTEGER DEFAULT 0`, (alterErr) => {
-            if (!alterErr) {
-              console.log('✅ Added isCrossTrade column to trades');
-              migrationsSucceeded++;
-            } else {
-              console.error('❌ Failed to add isCrossTrade:', alterErr.message);
-            }
-            checkComplete();
-          });
-        } else {
-          checkComplete();
-        }
-      } else {
-        checkComplete();
-      }
-    });
-
     // Track when individual migration tasks finish
     let pendingTasks = 0;
     let resolved = false;
@@ -114,6 +91,29 @@ function runMigrations() {
       pendingTasks--;
       done();
     };
+
+    // Check and add isCrossTrade to trades
+    db.all(`PRAGMA table_info(trades)`, [], (err, columns) => {
+      if (!err && columns) {
+        const hasColumn = columns.some(col => col.name === 'isCrossTrade');
+        if (!hasColumn) {
+          scheduleTask();
+          db.run(`ALTER TABLE trades ADD COLUMN isCrossTrade INTEGER DEFAULT 0`, (alterErr) => {
+            if (!alterErr) {
+              console.log('✅ Added isCrossTrade column to trades');
+              finishTask(true);
+            } else {
+              console.error('❌ Failed to add isCrossTrade:', alterErr.message);
+              finishTask(false);
+            }
+          });
+        } else {
+          done();
+        }
+      } else {
+        done();
+      }
+    });
 
     // Check and add isRead to messages
     db.all(`PRAGMA table_info(messages)`, [], (err, columns) => {
