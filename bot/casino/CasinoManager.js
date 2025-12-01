@@ -88,11 +88,28 @@ class CasinoManager {
   }
 
   async getBalance(userId) {
+    // Check if casino is enabled
+    if (!this.casinoEnabled) {
+      throw new Error('Casino features are disabled due to database issues');
+    }
+
     return new Promise((resolve, reject) => {
+      // Add timeout to prevent hanging
+      const timeout = setTimeout(() => {
+        reject(new Error('Database query timed out'));
+      }, 3000);
+
+      if (!this.db) {
+        clearTimeout(timeout);
+        reject(new Error('Database connection not available'));
+        return;
+      }
+
       this.db.get(
         'SELECT balance FROM casino_balances WHERE discordId = ?',
         [userId],
         (err, row) => {
+          clearTimeout(timeout);
           if (err) {
             reject(err);
           } else if (row) {

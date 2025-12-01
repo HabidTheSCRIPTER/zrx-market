@@ -2983,7 +2983,21 @@ class MiddlemanBot extends EventEmitter {
 
   async handleSlashBalance(interaction) {
     try {
-      const balance = await this.casino.getBalance(interaction.user.id);
+      // Check if casino is enabled
+      if (!this.casino || !this.casino.casinoEnabled) {
+        return await interaction.editReply({ 
+          content: '❌ Casino features are currently disabled due to database issues. Please try again later.' 
+        });
+      }
+
+      // Add timeout to prevent hanging
+      const balancePromise = this.casino.getBalance(interaction.user.id);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timed out')), 5000)
+      );
+
+      const balance = await Promise.race([balancePromise, timeoutPromise]);
+      
       const embed = new EmbedBuilder()
         .setTitle('💰 Your Balance')
         .setColor(0x00D166)
@@ -2993,7 +3007,10 @@ class MiddlemanBot extends EventEmitter {
 
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
+      console.error('Error in handleSlashBalance:', error);
+      await interaction.editReply({ 
+        content: `❌ ${getSnarkyResponse('error')} ${error.message || 'Failed to get balance. Casino features may be disabled.'}` 
+      });
     }
   }
 
