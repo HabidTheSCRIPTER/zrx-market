@@ -19,6 +19,8 @@ const reportsRoutes = require('./routes/reports');
 const adminRoutes = require('./routes/admin');
 const messagesRoutes = require('./routes/messages');
 const userRoutes = require('./routes/users');
+const globalChatRoutes = require('./routes/global-chat');
+const smartAlertsRoutes = require('./routes/smart-alerts');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -114,6 +116,8 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/global-chat', globalChatRoutes);
+app.use('/api/smart-alerts', smartAlertsRoutes);
 
 // Health check (before static files)
 app.get('/health', (req, res) => {
