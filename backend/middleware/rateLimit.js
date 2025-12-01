@@ -7,20 +7,45 @@ const apiLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  // Use a custom key generator that respects trust proxy settings
+  // This prevents the ERR_ERL_PERMISSIVE_TRUST_PROXY error by properly handling proxy headers
+  keyGenerator: (req) => {
+    // Use X-Forwarded-For header if available (when behind proxy)
+    // Otherwise fall back to connection IP
+    return req.headers['x-forwarded-for']?.split(',')[0] || 
+           req.headers['x-real-ip'] || 
+           req.ip || 
+           req.socket.remoteAddress || 
+           'unknown';
+  },
 });
 
 // Strict rate limiter for forms
 const formLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // limit each IP to 10 requests per windowMs
-  message: 'Too many form submissions, please try again later.'
+  message: 'Too many form submissions, please try again later.',
+  keyGenerator: (req) => {
+    return req.headers['x-forwarded-for']?.split(',')[0] || 
+           req.headers['x-real-ip'] || 
+           req.ip || 
+           req.socket.remoteAddress || 
+           'unknown';
+  },
 });
 
 // Auth rate limiter
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20, // Increased from 5 to allow more attempts during setup
-  message: 'Too many authentication attempts, please try again later.'
+  message: 'Too many authentication attempts, please try again later.',
+  keyGenerator: (req) => {
+    return req.headers['x-forwarded-for']?.split(',')[0] || 
+           req.headers['x-real-ip'] || 
+           req.ip || 
+           req.socket.remoteAddress || 
+           'unknown';
+  },
 });
 
 // Message rate limiter - more lenient for real-time messaging and polling
@@ -30,6 +55,13 @@ const messageLimiter = rateLimit({
   message: 'Too many message requests, please slow down.',
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    return req.headers['x-forwarded-for']?.split(',')[0] || 
+           req.headers['x-real-ip'] || 
+           req.ip || 
+           req.socket.remoteAddress || 
+           'unknown';
+  },
 });
 
 // Message sending rate limiter - stricter for POST requests
@@ -39,6 +71,13 @@ const messageSendLimiter = rateLimit({
   message: 'You are sending messages too quickly. Please slow down.',
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    return req.headers['x-forwarded-for']?.split(',')[0] || 
+           req.headers['x-real-ip'] || 
+           req.ip || 
+           req.socket.remoteAddress || 
+           'unknown';
+  },
 });
 
 module.exports = { apiLimiter, formLimiter, authLimiter, messageLimiter, messageSendLimiter };

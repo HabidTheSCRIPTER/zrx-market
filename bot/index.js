@@ -4,80 +4,37 @@ const { Client, GatewayIntentBits, EmbedBuilder, Events, ActionRowBuilder, Butto
 const sqlite3 = require('sqlite3').verbose();
 const EventEmitter = require('events');
 
-// Database connection for bot with error handling
+// Database connection for bot
 const DB_PATH = path.join(__dirname, '../data/zrx-market.db');
 const db = new sqlite3.Database(DB_PATH, (err) => {
   if (err) {
-    console.error('❌ Bot: Error opening database:', err.message);
-    console.error('Stack:', err.stack);
-  } else {
-    console.log('✅ Bot: Connected to SQLite database');
-    db.configure('busyTimeout', 30000); // 30 second timeout
+    console.error('Bot: Error opening database:', err.message);
   }
 });
 
-// Database error handlers for bot
-db.on('error', (err) => {
-  console.error('❌ Bot: Database error:', err.message);
-  console.error('Stack:', err.stack);
-});
-
 const dbHelpers = {
-  get: (query, params = [], retries = 3) => {
+  get: (query, params = []) => {
     return new Promise((resolve, reject) => {
-      const attempt = (remaining) => {
-        db.get(query, params, (err, row) => {
-          if (err) {
-            if (err.code === 'SQLITE_BUSY' && remaining > 0) {
-              setTimeout(() => attempt(remaining - 1), 100);
-            } else {
-              console.error('Bot: Database get error:', err.message);
-              reject(err);
-            }
-          } else {
-            resolve(row);
-          }
-        });
-      };
-      attempt(retries);
+      db.get(query, params, (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
     });
   },
-  all: (query, params = [], retries = 3) => {
+  all: (query, params = []) => {
     return new Promise((resolve, reject) => {
-      const attempt = (remaining) => {
-        db.all(query, params, (err, rows) => {
-          if (err) {
-            if (err.code === 'SQLITE_BUSY' && remaining > 0) {
-              setTimeout(() => attempt(remaining - 1), 100);
-            } else {
-              console.error('Bot: Database all error:', err.message);
-              reject(err);
-            }
-          } else {
-            resolve(rows || []);
-          }
-        });
-      };
-      attempt(retries);
+      db.all(query, params, (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
     });
   },
-  run: (query, params = [], retries = 3) => {
+  run: (query, params = []) => {
     return new Promise((resolve, reject) => {
-      const attempt = (remaining) => {
-        db.run(query, params, function(err) {
-          if (err) {
-            if (err.code === 'SQLITE_BUSY' && remaining > 0) {
-              setTimeout(() => attempt(remaining - 1), 100);
-            } else {
-              console.error('Bot: Database run error:', err.message);
-              reject(err);
-            }
-          } else {
-            resolve({ lastID: this.lastID, changes: this.changes });
-          }
-        });
-      };
-      attempt(retries);
+      db.run(query, params, function(err) {
+        if (err) reject(err);
+        else resolve({ lastID: this.lastID, changes: this.changes });
+      });
     });
   }
 };
@@ -139,23 +96,6 @@ class MiddlemanBot extends EventEmitter {
   }
 
   setupEventHandlers() {
-    // Error handlers
-    this.client.on('error', (error) => {
-      console.error('❌ Bot client error:', error);
-    });
-
-    this.client.on('warn', (warning) => {
-      console.warn('⚠️  Bot warning:', warning);
-    });
-
-    this.client.on('disconnect', (event) => {
-      console.warn('⚠️  Bot disconnected:', event);
-    });
-
-    this.client.on('reconnecting', () => {
-      console.log('🔄 Bot reconnecting...');
-    });
-
     this.client.once(Events.ClientReady, async () => {
       console.log(`🤖 Bot logged in as ${this.client.user.tag} - Ready to be a snarky asshole!`);
       await this.registerSlashCommands();
@@ -375,18 +315,6 @@ class MiddlemanBot extends EventEmitter {
                   .setRequired(true)))
           .addSubcommand(subcommand =>
             subcommand
-              .setName('tip')
-              .setDescription('Request a tip for a middleman request')
-              .addIntegerOption(option =>
-                option.setName('id')
-                  .setDescription('Request ID')
-                  .setRequired(true))
-              .addStringOption(option =>
-                option.setName('amount')
-                  .setDescription('Tip amount (e.g., "50 Robux", "100M/s")')
-                  .setRequired(true)))
-          .addSubcommand(subcommand =>
-            subcommand
               .setName('list')
               .setDescription('List middleman requests')
               .addStringOption(option =>
@@ -395,7 +323,6 @@ class MiddlemanBot extends EventEmitter {
                   .setRequired(false)
                   .addChoices(
                     { name: 'Pending', value: 'pending' },
-                    { name: 'Waiting Confirmation', value: 'waiting_confirmation' },
                     { name: 'Accepted', value: 'accepted' },
                     { name: 'Declined', value: 'declined' },
                     { name: 'Completed', value: 'completed' }
@@ -655,7 +582,7 @@ class MiddlemanBot extends EventEmitter {
     try {
       const pendingRequests = await dbHelpers.all(
         `SELECT * FROM middleman 
-         WHERE (status = 'pending' OR status = 'waiting_confirmation')
+         WHERE status = 'pending' 
          AND threadId IS NOT NULL 
          AND (user1Accepted = 0 OR user2Accepted = 0)
          AND datetime(createdAt, '+5 minutes') > datetime('now')`
@@ -748,17 +675,11 @@ class MiddlemanBot extends EventEmitter {
       );
 
       if (updatedRequest && updatedRequest.user1Accepted === 1 && updatedRequest.user2Accepted === 1) {
-        // Update status to pending when both accept
-        await dbHelpers.run(
-          'UPDATE middleman SET status = ? WHERE id = ?',
-          ['pending', requestId]
-        );
-        
         const roleMention = process.env.MIDDLEMAN_ROLE_ID ? `<@&${process.env.MIDDLEMAN_ROLE_ID}>` : '';
         await thread.send({
-          content: `🎉 **Both parties have accepted the trade!**\n\n${roleMention} A middleman is needed for this trade. The request is now in the waitlist on the website.\n\n**Trade Details:**\n${request.item}\n\n**Participants:**\n- <@${user1Id}>\n- <@${user2Id}>`
+          content: `🎉 **Both parties have accepted the trade!**\n\n${roleMention} A middleman is needed for this trade.\n\n**Trade Details:**\n${request.item}\n\n**Participants:**\n- <@${user1Id}>\n- <@${user2Id}>`
         });
-        console.log(`✅ Both parties accepted trade #${requestId}, status updated to pending`);
+        console.log(`✅ Both parties accepted trade #${requestId}, middleman pinged`);
 
       } else {
         const createdAt = new Date(request.createdAt);
@@ -909,45 +830,6 @@ class MiddlemanBot extends EventEmitter {
         return;
       }
 
-      // MM command - moderator only (no public request command)
-      if (command === 'mm') {
-        const hasModeratorRole = message.member?.roles.cache.has(process.env.MODERATOR_ROLE_ID);
-        if (!hasModeratorRole) {
-          const snarky = getSnarkyResponse('noPermission');
-          return message.reply(`❌ ${snarky} MM requests are now only available on the website through chat.`);
-        }
-
-        const subCommand = args.shift()?.toLowerCase();
-        try {
-          switch (subCommand) {
-            case 'accept':
-              await this.handleAccept(message, args);
-              break;
-            case 'decline':
-              await this.handleDecline(message, args);
-              break;
-            case 'complete':
-              await this.handleComplete(message, args);
-              break;
-            case 'tip':
-              await this.handleMMTipChat(message, args);
-              break;
-            case 'list':
-              await this.handleList(message, args);
-              break;
-            case 'ticket':
-              await this.handleTicket(message, args);
-              break;
-            default:
-              await this.handleMMHelp(message);
-          }
-        } catch (error) {
-          console.error('MM command error:', error);
-          await message.reply(`❌ ${getSnarkyResponse('error')} Error: ${error.message}`);
-        }
-        return;
-      }
-
       // Moderator-only commands
       const hasModeratorRole = message.member?.roles.cache.has(process.env.MODERATOR_ROLE_ID);
       if (!hasModeratorRole) {
@@ -957,6 +839,28 @@ class MiddlemanBot extends EventEmitter {
 
       try {
         switch (command) {
+          case 'mm':
+            const subCommand = args.shift()?.toLowerCase();
+            switch (subCommand) {
+              case 'accept':
+                await this.handleAccept(message, args);
+                break;
+              case 'decline':
+                await this.handleDecline(message, args);
+                break;
+              case 'complete':
+                await this.handleComplete(message, args);
+                break;
+              case 'list':
+                await this.handleList(message, args);
+                break;
+              case 'ticket':
+                await this.handleTicket(message, args);
+                break;
+              default:
+                await this.handleMMHelp(message);
+            }
+            break;
           case 'blacklist':
             const blacklistCmd = args.shift()?.toLowerCase();
             switch (blacklistCmd) {
@@ -1096,25 +1000,23 @@ class MiddlemanBot extends EventEmitter {
   }
 
   async handleMMHelp(message) {
-    const isModerator = message.member?.roles.cache.has(process.env.MODERATOR_ROLE_ID);
-    
-    let commandsText = '**MM Requests:**\n';
-    commandsText += 'MM requests are now only available on the website through the chat system.\n';
-    commandsText += 'Both parties must request MM from within their chat conversation.\n\n';
-    
-    if (isModerator) {
-      commandsText += '**Moderator Commands:**\n';
-      commandsText += '`!mm accept <id>` - Accept a pending middleman request\n';
-      commandsText += '`!mm decline <id>` - Decline a pending middleman request\n';
-      commandsText += '`!mm complete <id>` - Mark a request as completed\n';
-      commandsText += '`!mm tip <id> <amount>` - Request a tip to speed up processing\n';
-      commandsText += '`!mm list [status]` - List requests\n';
-    }
-    
     const embed = new EmbedBuilder()
       .setTitle('📋 Middleman Commands')
       .setColor(0x5865F2)
-      .setDescription(commandsText)
+      .setDescription('Middleman commands. Use them right or don\'t use them at all.')
+      .addFields(
+        {
+          name: 'Commands',
+          value: [
+            '`!mm accept <id>` - Accept a pending middleman request',
+            '`!mm decline <id>` - Decline a pending middleman request',
+            '`!mm complete <id>` - Mark a request as completed',
+            '`!mm list [status]` - List requests (pending/accepted/declined/completed)',
+            '`!mm ticket <id>` - Create a ticket channel (not implemented)'
+          ].join('\n'),
+          inline: false
+        }
+      )
       .setFooter({ text: 'ZRX Market Bot' })
       .setTimestamp();
 
@@ -2174,11 +2076,7 @@ class MiddlemanBot extends EventEmitter {
       return message.reply(`❌ ${getSnarkyResponse('notFound')} Request not found.`);
     }
 
-    // Can only accept requests that are pending (both parties already confirmed)
     if (request.status !== 'pending') {
-      if (request.status === 'waiting_confirmation') {
-        return message.reply(`❌ Request is still waiting for both parties to confirm. Both users must react with ✅ in the Discord thread first.`);
-      }
       return message.reply(`❌ Request is already ${request.status}. What the fuck did you expect?`);
     }
 
@@ -2394,189 +2292,13 @@ class MiddlemanBot extends EventEmitter {
     message.reply(`✅ ${getSnarkyResponse('success')} Request #${requestId} marked as completed.`);
   }
 
-  async handleMMRequest(message, args) {
-    try {
-      // Parse command: !mm request @user1 @user2 item:"description" value:"50 Robux" roblox:"username"
-      // Or simpler: !mm request @user1 @user2 description here
-      
-      if (args.length < 3) {
-        return message.reply(`❌ Usage: \`!mm request @user1 @user2 item:"Trade description" [value:"50 Robux"] [roblox:"username"]\``);
-      }
-
-      // Extract mentions
-      const mentions = message.mentions.users.map(u => u.id);
-      if (mentions.length < 2) {
-        return message.reply(`❌ You must mention exactly 2 users: \`!mm request @user1 @user2 item:"description"\``);
-      }
-
-      const user1Id = mentions[0];
-      const user2Id = mentions[1];
-
-      // Parse optional parameters - simpler format
-      // !mm request @user1 @user2 "item description" value:"50 Robux" roblox:"username"
-      // Or just: !mm request @user1 @user2 item description here
-      
-      let item = '';
-      let value = null;
-      let robloxUsername = null;
-
-      // Join all remaining args
-      const remainingText = args.slice(mentions.length).join(' ');
-      
-      // Try to parse with quotes first
-      const quotedMatch = remainingText.match(/^"([^"]+)"(.+)?$/);
-      if (quotedMatch) {
-        item = quotedMatch[1];
-        const afterQuotes = quotedMatch[2] || '';
-        
-        // Parse value: from remaining text
-        const valueMatch = afterQuotes.match(/value[:=](["']?)([^"'\s]+)\1/i);
-        if (valueMatch) {
-          value = valueMatch[2];
-        }
-        
-        // Parse roblox: from remaining text
-        const robloxMatch = afterQuotes.match(/roblox[:=](["']?)([^"'\s]+)\1/i);
-        if (robloxMatch) {
-          robloxUsername = robloxMatch[2];
-        }
-      } else {
-        // No quotes - parse everything
-        // Look for value: and roblox: patterns
-        const parts = remainingText.split(/\s+(?=value:|roblox:)/i);
-        
-        // First part is item, rest are parameters
-        item = parts[0] || remainingText;
-        
-        for (const part of parts.slice(1)) {
-          if (part.toLowerCase().startsWith('value:')) {
-            value = part.replace(/value[:=]\s*/i, '').replace(/^["']|["']$/g, '');
-          } else if (part.toLowerCase().startsWith('roblox:')) {
-            robloxUsername = part.replace(/roblox[:=]\s*/i, '').replace(/^["']|["']$/g, '');
-          }
-        }
-      }
-
-      // Remove value: and roblox: from item if somehow included
-      item = item.replace(/\s*(value:|roblox:).*$/i, '').trim();
-
-      if (!item || item.trim() === '') {
-        return message.reply(`❌ You must provide an item/trade description.\n**Usage:** \`!mm request @user1 @user2 "Trade description" [value:50 Robux] [roblox:username]\`\n**Example:** \`!mm request @User1 @User2 "Capitano Moby for 100 Robux" value:100 Robux\``);
-      }
-
-      // Check if requester exists in database
-      let requester = await dbHelpers.get(
-        'SELECT * FROM users WHERE discordId = ?',
-        [message.author.id]
-      );
-
-      if (!requester) {
-        // Create user if doesn't exist
-        await dbHelpers.run(
-          'INSERT INTO users (discordId, username, avatar) VALUES (?, ?, ?)',
-          [message.author.id, message.author.username, message.author.displayAvatarURL()]
-        );
-      }
-
-      // Create middleman request with waiting_confirmation status
-      const result = await dbHelpers.run(
-        `INSERT INTO middleman (requesterId, user1, user2, item, value, robloxUsername, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [
-          message.author.id,
-          user1Id,
-          user2Id,
-          item.trim(),
-          value,
-          robloxUsername,
-          'waiting_confirmation'
-        ]
-      );
-
-      const request = await dbHelpers.get(
-        'SELECT * FROM middleman WHERE id = ?',
-        [result.lastID]
-      );
-
-      // Create acceptance thread via API
-      const axios = require('axios');
-      try {
-        await axios.post(`${process.env.BASE_URL || 'http://localhost:3000'}/api/middleman/${request.id}/create-thread`);
-        await message.reply(`✅ Middleman request #${request.id} created! Both parties (<@${user1Id}> and <@${user2Id}>) need to confirm the trade in Discord.`);
-      } catch (error) {
-        console.error('Error creating acceptance thread:', error.message);
-        await message.reply(`✅ Middleman request #${request.id} created, but failed to create confirmation thread. Contact an admin.`);
-      }
-    } catch (error) {
-      console.error('Error creating MM request:', error);
-      await message.reply(`❌ Error creating request: ${error.message}`);
-    }
-  }
-
-  async handleMMTipChat(message, args) {
-    try {
-      const requestId = parseInt(args[0]);
-      const tipAmount = args.slice(1).join(' ');
-
-      if (!requestId || !tipAmount) {
-        return message.reply(`❌ Usage: \`!mm tip <request_id> <tip_amount>\`\nExample: \`!mm tip 123 50 Robux\``);
-      }
-
-      const request = await dbHelpers.get(
-        'SELECT * FROM middleman WHERE id = ?',
-        [requestId]
-      );
-
-      if (!request) {
-        return message.reply(`❌ Request #${requestId} not found.`);
-      }
-
-      if (request.status === 'completed') {
-        return message.reply(`❌ Cannot request tip for completed request.`);
-      }
-
-      // Update request with tip
-      await dbHelpers.run(
-        'UPDATE middleman SET requestedTip = ? WHERE id = ?',
-        [tipAmount, requestId]
-      );
-
-      // Notify in thread if exists
-      if (request.threadId) {
-        try {
-          const thread = await this.client.channels.fetch(request.threadId);
-          if (thread) {
-            const user1Id = request.user1 ? String(request.user1).replace(/[<@!>]/g, '') : '';
-            const user2Id = request.user2 ? String(request.user2).replace(/[<@!>]/g, '') : '';
-            await thread.send({
-              content: `💰 **Tip Requested to Speed Up Processing**\n\n<@${user1Id}> <@${user2Id}>\n\nThe middleman has requested a tip of **${tipAmount}** to prioritize and speed up this trade.\n\nPlease coordinate with the middleman to provide the tip.`
-            });
-          }
-        } catch (error) {
-          console.error('Error sending tip notification to thread:', error);
-        }
-      }
-
-      await message.reply(`✅ Tip of ${tipAmount} requested for request #${requestId}. Both parties have been notified in the thread.`);
-    } catch (error) {
-      console.error('Error requesting tip:', error);
-      await message.reply(`❌ Error requesting tip: ${error.message}`);
-    }
-  }
-
   async handleList(message, args) {
     const status = args[0] || 'pending';
 
-    let query = 'SELECT * FROM middleman WHERE status = ? ORDER BY createdAt DESC LIMIT 10';
-    let params = [status];
-    
-    // If showing pending, also include waiting_confirmation
-    if (status === 'pending') {
-      query = 'SELECT * FROM middleman WHERE (status = ? OR status = ?) ORDER BY createdAt DESC LIMIT 10';
-      params = ['pending', 'waiting_confirmation'];
-    }
-
-    const requests = await dbHelpers.all(query, params);
+    const requests = await dbHelpers.all(
+      'SELECT * FROM middleman WHERE status = ? ORDER BY createdAt DESC LIMIT 10',
+      [status]
+    );
 
     if (requests.length === 0) {
       return message.reply(`No ${status} requests found. Lucky you, I guess.`);
@@ -3086,6 +2808,7 @@ class MiddlemanBot extends EventEmitter {
   }
 
   async handleSlashStats(interaction) {
+    await interaction.deferReply({ ephemeral: true });
     try {
       const totalTrades = await dbHelpers.get('SELECT COUNT(*) as count FROM trades WHERE status = ?', ['active']);
       const totalUsers = await dbHelpers.get('SELECT COUNT(*) as count FROM users');
@@ -3108,20 +2831,21 @@ class MiddlemanBot extends EventEmitter {
         .setFooter({ text: 'ZRX Market Bot' })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed], ephemeral: true });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
   async handleSlashUserLookup(interaction) {
+    await interaction.deferReply({ ephemeral: true });
     const userId = interaction.options.getString('discordid').replace(/[<@!>]/g, '');
     
     try {
       const user = await dbHelpers.get('SELECT * FROM users WHERE discordId = ?', [userId]);
       
       if (!user) {
-        return interaction.reply({ content: `❌ ${getSnarkyResponse('notFound')} User not found in database.`, ephemeral: true });
+        return await interaction.editReply({ content: `❌ ${getSnarkyResponse('notFound')} User not found in database.` });
       }
 
       const userTrades = await dbHelpers.get('SELECT COUNT(*) as count FROM trades WHERE creatorId = ?', [userId]);
@@ -3145,13 +2869,14 @@ class MiddlemanBot extends EventEmitter {
         .setFooter({ text: `User ID: ${userId}` })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed], ephemeral: true });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
   async handleSlashTradeLookup(interaction) {
+    await interaction.deferReply({ ephemeral: true });
     const tradeId = interaction.options.getInteger('id');
 
     try {
@@ -3164,7 +2889,7 @@ class MiddlemanBot extends EventEmitter {
       );
 
       if (!trade) {
-        return interaction.reply({ content: `❌ ${getSnarkyResponse('notFound')} Trade #${tradeId} not found.`, ephemeral: true });
+        return await interaction.editReply({ content: `❌ ${getSnarkyResponse('notFound')} Trade #${tradeId} not found.` });
       }
 
       const offered = trade.offered ? JSON.parse(trade.offered) : [];
@@ -3196,13 +2921,14 @@ class MiddlemanBot extends EventEmitter {
         .setFooter({ text: `Trade ID: ${trade.id}` })
         .setTimestamp(new Date(trade.createdAt));
 
-      await interaction.reply({ embeds: [embed], ephemeral: true });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
   async handleSlashBalance(interaction) {
+    await interaction.deferReply({ ephemeral: false });
     try {
       const balance = await this.casino.getBalance(interaction.user.id);
       const embed = new EmbedBuilder()
@@ -3212,13 +2938,14 @@ class MiddlemanBot extends EventEmitter {
         .setFooter({ text: `User: ${interaction.user.tag}` })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
   async handleSlashDaily(interaction) {
+    await interaction.deferReply({ ephemeral: false });
     try {
       const result = await this.casino.dailyReward(interaction.user.id);
       
@@ -3228,7 +2955,7 @@ class MiddlemanBot extends EventEmitter {
           .setColor(0xFFA500)
           .setDescription(`You've already claimed your daily reward today.\n\nCome back in **${result.hoursLeft} hours**, you impatient fuck.`)
           .setTimestamp();
-        return await interaction.reply({ embeds: [embed] });
+        return await interaction.editReply({ embeds: [embed] });
       }
 
       const embed = new EmbedBuilder()
@@ -3238,13 +2965,14 @@ class MiddlemanBot extends EventEmitter {
         .setFooter({ text: `User: ${interaction.user.tag}` })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
   async handleSlashCasinoStats(interaction) {
+    await interaction.deferReply({ ephemeral: false });
     try {
       const targetUser = interaction.options.getUser('user');
       const userId = targetUser ? targetUser.id : interaction.user.id;
@@ -3268,13 +2996,14 @@ class MiddlemanBot extends EventEmitter {
         .setFooter({ text: `User: ${targetUser ? targetUser.tag : interaction.user.tag}` })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
   async handleSlashCoinflip(interaction) {
+    await interaction.deferReply({ ephemeral: false });
     try {
       const bet = interaction.options.getInteger('bet');
       const choice = interaction.options.getString('choice').toLowerCase();
@@ -3282,7 +3011,7 @@ class MiddlemanBot extends EventEmitter {
       const result = await this.casino.coinflip(interaction.user.id, bet, choice);
 
       if (!result.success) {
-        return interaction.reply({ content: `❌ ${result.error}`, ephemeral: true });
+        return await interaction.editReply({ content: `❌ ${result.error}` });
       }
 
       const embed = new EmbedBuilder()
@@ -3296,13 +3025,14 @@ class MiddlemanBot extends EventEmitter {
         .setFooter({ text: `User: ${interaction.user.tag}` })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
   async handleSlashDice(interaction) {
+    await interaction.deferReply({ ephemeral: false });
     try {
       const bet = interaction.options.getInteger('bet');
       const guess = interaction.options.getInteger('guess');
@@ -3310,7 +3040,7 @@ class MiddlemanBot extends EventEmitter {
       const result = await this.casino.dice(interaction.user.id, bet, guess);
 
       if (!result.success) {
-        return interaction.reply({ content: `❌ ${result.error}`, ephemeral: true });
+        return await interaction.editReply({ content: `❌ ${result.error}` });
       }
 
       const embed = new EmbedBuilder()
@@ -3324,20 +3054,21 @@ class MiddlemanBot extends EventEmitter {
         .setFooter({ text: `User: ${interaction.user.tag}` })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
   async handleSlashDouble(interaction) {
+    await interaction.deferReply({ ephemeral: false });
     try {
       const bet = interaction.options.getInteger('bet');
 
       const result = await this.casino.double(interaction.user.id, bet);
 
       if (!result.success) {
-        return interaction.reply({ content: `❌ ${result.error}`, ephemeral: true });
+        return await interaction.editReply({ content: `❌ ${result.error}` });
       }
 
       const embed = new EmbedBuilder()
@@ -3351,13 +3082,14 @@ class MiddlemanBot extends EventEmitter {
         .setFooter({ text: `User: ${interaction.user.tag}` })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
   async handleSlashRoulette(interaction) {
+    await interaction.deferReply({ ephemeral: false });
     try {
       const bet = interaction.options.getInteger('bet');
       const choice = interaction.options.getString('choice');
@@ -3365,7 +3097,7 @@ class MiddlemanBot extends EventEmitter {
       const result = await this.casino.roulette(interaction.user.id, bet, choice);
 
       if (!result.success) {
-        return interaction.reply({ content: `❌ ${result.error}`, ephemeral: true });
+        return await interaction.editReply({ content: `❌ ${result.error}` });
       }
 
       const embed = new EmbedBuilder()
@@ -3379,20 +3111,21 @@ class MiddlemanBot extends EventEmitter {
         .setFooter({ text: `User: ${interaction.user.tag}` })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
   async handleSlashBlackjack(interaction) {
+    await interaction.deferReply({ ephemeral: false });
     try {
       const bet = interaction.options.getInteger('bet');
 
       const result = await this.casino.blackjack(interaction.user.id, bet);
 
       if (!result.success) {
-        return interaction.reply({ content: `❌ ${result.error}`, ephemeral: true });
+        return await interaction.editReply({ content: `❌ ${result.error}` });
       }
 
       const embed = new EmbedBuilder()
@@ -3407,18 +3140,19 @@ class MiddlemanBot extends EventEmitter {
         .setFooter({ text: `Bet: ${bet.toLocaleString()} coins | User: ${interaction.user.tag}` })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
   async handleSlashBlackjackHit(interaction) {
+    await interaction.deferReply({ ephemeral: false });
     try {
       const result = await this.casino.blackjackHit(interaction.user.id);
 
       if (!result.success) {
-        return interaction.reply({ content: `❌ ${result.error}`, ephemeral: true });
+        return await interaction.editReply({ content: `❌ ${result.error}` });
       }
 
       if (result.bust) {
@@ -3434,7 +3168,7 @@ class MiddlemanBot extends EventEmitter {
           .setFooter({ text: `User: ${interaction.user.tag}` })
           .setTimestamp();
 
-        return await interaction.reply({ embeds: [embed] });
+        return await interaction.editReply({ embeds: [embed] });
       }
 
       const embed = new EmbedBuilder()
@@ -3448,18 +3182,19 @@ class MiddlemanBot extends EventEmitter {
         .setFooter({ text: `User: ${interaction.user.tag}` })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
   async handleSlashBlackjackStand(interaction) {
+    await interaction.deferReply({ ephemeral: false });
     try {
       const result = await this.casino.blackjackStand(interaction.user.id);
 
       if (!result.success) {
-        return interaction.reply({ content: `❌ ${result.error}`, ephemeral: true });
+        return await interaction.editReply({ content: `❌ ${result.error}` });
       }
 
       if (result.push) {
@@ -3477,7 +3212,7 @@ class MiddlemanBot extends EventEmitter {
           .setFooter({ text: `User: ${interaction.user.tag}` })
           .setTimestamp();
 
-        return await interaction.reply({ embeds: [embed] });
+        return await interaction.editReply({ embeds: [embed] });
       }
 
       const embed = new EmbedBuilder()
@@ -3496,67 +3231,9 @@ class MiddlemanBot extends EventEmitter {
         .setFooter({ text: `User: ${interaction.user.tag}` })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
-    }
-  }
-
-  async handleMMTip(interaction) {
-    const hasModeratorRole = interaction.member?.roles.cache.has(process.env.MODERATOR_ROLE_ID);
-    if (!hasModeratorRole) {
-      return interaction.reply({ content: `❌ ${getSnarkyResponse('noPermission')}`, ephemeral: true });
-    }
-
-    try {
-      const requestId = interaction.options.getInteger('id');
-      const tipAmount = interaction.options.getString('amount');
-
-      const request = await dbHelpers.get(
-        'SELECT * FROM middleman WHERE id = ?',
-        [requestId]
-      );
-
-      if (!request) {
-        return interaction.reply({ content: `❌ Request #${requestId} not found.`, ephemeral: true });
-      }
-
-      if (request.status === 'completed') {
-        return interaction.reply({ content: `❌ Cannot request tip for completed request.`, ephemeral: true });
-      }
-
-      // Update request with tip
-      await dbHelpers.run(
-        'UPDATE middleman SET requestedTip = ? WHERE id = ?',
-        [tipAmount, requestId]
-      );
-
-      // Notify in thread if exists
-      if (request.threadId) {
-        try {
-          const thread = await this.client.channels.fetch(request.threadId);
-          if (thread) {
-            const user1Id = request.user1 ? String(request.user1).replace(/[<@!>]/g, '') : '';
-            const user2Id = request.user2 ? String(request.user2).replace(/[<@!>]/g, '') : '';
-            await thread.send({
-              content: `💰 **Tip Requested**\n\n<@${user1Id}> <@${user2Id}>\n\nThe middleman has requested a tip of **${tipAmount}** for this trade.\n\nPlease coordinate with the middleman to provide the tip.`
-            });
-          }
-        } catch (error) {
-          console.error('Error sending tip notification to thread:', error);
-        }
-      }
-
-      await interaction.reply({ 
-        content: `✅ Tip of ${tipAmount} requested for request #${requestId}. Both parties have been notified.`, 
-        ephemeral: true 
-      });
-    } catch (error) {
-      console.error('Error requesting tip:', error);
-      await interaction.reply({ 
-        content: `❌ Error requesting tip: ${error.message}`, 
-        ephemeral: true 
-      });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
@@ -3566,6 +3243,7 @@ class MiddlemanBot extends EventEmitter {
       return interaction.reply({ content: `❌ ${getSnarkyResponse('noPermission')}`, ephemeral: true });
     }
 
+    await interaction.deferReply({ ephemeral: true });
     const subcommand = interaction.options.getSubcommand();
 
     try {
@@ -3573,36 +3251,33 @@ class MiddlemanBot extends EventEmitter {
         case 'accept':
           const acceptId = interaction.options.getInteger('id');
           // Convert to message-like format for existing handler
-          const acceptMessage = { author: { id: interaction.user.id }, channel: interaction.channel, reply: (content) => interaction.reply({ content, ephemeral: true }) };
+          const acceptMessage = { author: { id: interaction.user.id }, channel: interaction.channel, reply: (content) => interaction.editReply({ content }) };
           await this.handleAccept(acceptMessage, [acceptId.toString()]);
           break;
         case 'decline':
           const declineId = interaction.options.getInteger('id');
-          const declineMessage = { author: { id: interaction.user.id }, channel: interaction.channel, reply: (content) => interaction.reply({ content, ephemeral: true }) };
+          const declineMessage = { author: { id: interaction.user.id }, channel: interaction.channel, reply: (content) => interaction.editReply({ content }) };
           await this.handleDecline(declineMessage, [declineId.toString()]);
           break;
         case 'complete':
           const completeId = interaction.options.getInteger('id');
-          const completeMessage = { author: { id: interaction.user.id }, channel: interaction.channel, reply: (content) => interaction.reply({ content, ephemeral: true }) };
+          const completeMessage = { author: { id: interaction.user.id }, channel: interaction.channel, reply: (content) => interaction.editReply({ content }) };
           await this.handleComplete(completeMessage, [completeId.toString()]);
-          break;
-        case 'tip':
-          await this.handleMMTip(interaction);
           break;
         case 'list':
           const status = interaction.options.getString('status') || 'pending';
           const listMessage = { reply: async (content) => {
             if (typeof content === 'string') {
-              await interaction.reply({ content, ephemeral: true });
+              await interaction.editReply({ content });
             } else {
-              await interaction.reply({ embeds: content.embeds, ephemeral: true });
+              await interaction.editReply({ embeds: content.embeds });
             }
           }};
           await this.handleList(listMessage, [status]);
           break;
       }
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
@@ -3612,6 +3287,7 @@ class MiddlemanBot extends EventEmitter {
       return interaction.reply({ content: `❌ ${getSnarkyResponse('noPermission')}`, ephemeral: true });
     }
 
+    await interaction.deferReply({ ephemeral: true });
     const subcommand = interaction.options.getSubcommand();
 
     try {
@@ -3619,32 +3295,32 @@ class MiddlemanBot extends EventEmitter {
         case 'add':
           const user = interaction.options.getUser('user');
           const reason = interaction.options.getString('reason');
-          const addMessage = { author: { id: interaction.user.id }, reply: (content) => interaction.reply({ content, ephemeral: true }) };
+          const addMessage = { author: { id: interaction.user.id }, reply: (content) => interaction.editReply({ content }) };
           await this.handleBlacklistAdd(addMessage, [user.id, reason]);
           break;
         case 'remove':
           const removeUser = interaction.options.getUser('user');
-          const removeMessage = { author: { id: interaction.user.id }, reply: (content) => interaction.reply({ content, ephemeral: true }) };
+          const removeMessage = { author: { id: interaction.user.id }, reply: (content) => interaction.editReply({ content }) };
           await this.handleBlacklistRemove(removeMessage, [removeUser.id]);
           break;
         case 'list':
           const listMessage = { reply: async (content) => {
             if (typeof content === 'string') {
-              await interaction.reply({ content, ephemeral: true });
+              await interaction.editReply({ content });
             } else {
-              await interaction.reply({ embeds: content.embeds, ephemeral: true });
+              await interaction.editReply({ embeds: content.embeds });
             }
           }};
           await this.handleBlacklistList(listMessage);
           break;
         case 'check':
           const checkUser = interaction.options.getUser('user');
-          const checkMessage = { reply: (content) => interaction.reply({ content, ephemeral: true }) };
+          const checkMessage = { reply: (content) => interaction.editReply({ content }) };
           await this.handleBlacklistCheck(checkMessage, [checkUser.id]);
           break;
       }
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
@@ -3654,6 +3330,7 @@ class MiddlemanBot extends EventEmitter {
       return interaction.reply({ content: `❌ ${getSnarkyResponse('noPermission')}`, ephemeral: true });
     }
 
+    await interaction.deferReply({ ephemeral: true });
     const subcommand = interaction.options.getSubcommand();
 
     try {
@@ -3662,9 +3339,9 @@ class MiddlemanBot extends EventEmitter {
           const status = interaction.options.getString('status') || 'pending';
           const listMessage = { reply: async (content) => {
             if (typeof content === 'string') {
-              await interaction.reply({ content, ephemeral: true });
+              await interaction.editReply({ content });
             } else {
-              await interaction.reply({ embeds: content.embeds, ephemeral: true });
+              await interaction.editReply({ embeds: content.embeds });
             }
           }};
           await this.handleReportList(listMessage, [status]);
@@ -3673,16 +3350,16 @@ class MiddlemanBot extends EventEmitter {
           const reportId = interaction.options.getInteger('id');
           const viewMessage = { reply: async (content) => {
             if (typeof content === 'string') {
-              await interaction.reply({ content, ephemeral: true });
+              await interaction.editReply({ content });
             } else {
-              await interaction.reply({ embeds: content.embeds, ephemeral: true });
+              await interaction.editReply({ embeds: content.embeds });
             }
           }};
           await this.handleReportView(viewMessage, [reportId.toString()]);
           break;
       }
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
@@ -3692,8 +3369,9 @@ class MiddlemanBot extends EventEmitter {
       return interaction.reply({ content: `❌ ${getSnarkyResponse('noPermission')}`, ephemeral: true });
     }
 
+    await interaction.deferReply({ ephemeral: true });
     const user = interaction.options.getUser('user');
-    const message = { author: { id: interaction.user.id }, reply: (content) => interaction.reply({ content, ephemeral: true }) };
+    const message = { author: { id: interaction.user.id }, reply: (content) => interaction.editReply({ content }) };
     await this.handleVerify(message, [user.id]);
   }
 
@@ -3703,8 +3381,9 @@ class MiddlemanBot extends EventEmitter {
       return interaction.reply({ content: `❌ ${getSnarkyResponse('noPermission')}`, ephemeral: true });
     }
 
+    await interaction.deferReply({ ephemeral: true });
     const user = interaction.options.getUser('user');
-    const message = { author: { id: interaction.user.id }, reply: (content) => interaction.reply({ content, ephemeral: true }) };
+    const message = { author: { id: interaction.user.id }, reply: (content) => interaction.editReply({ content }) };
     await this.handleUnverify(message, [user.id]);
   }
 
@@ -3714,10 +3393,11 @@ class MiddlemanBot extends EventEmitter {
       return interaction.reply({ content: `❌ ${getSnarkyResponse('noPermission')}`, ephemeral: true });
     }
 
+    await interaction.deferReply({ ephemeral: true });
     try {
       const guild = interaction.guild;
       if (!guild) {
-        return interaction.reply({ content: '❌ This command only works in a server, you absolute buffoon.', ephemeral: true });
+        return await interaction.editReply({ content: '❌ This command only works in a server, you absolute buffoon.' });
       }
 
       const totalMembers = guild.memberCount;
@@ -3740,9 +3420,9 @@ class MiddlemanBot extends EventEmitter {
         .setFooter({ text: `Server ID: ${guild.id}` })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed], ephemeral: true });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
@@ -3752,6 +3432,7 @@ class MiddlemanBot extends EventEmitter {
       return interaction.reply({ content: `❌ ${getSnarkyResponse('noPermission')}`, ephemeral: true });
     }
 
+    await interaction.deferReply({ ephemeral: true });
     try {
       const result = await dbHelpers.run(
         `UPDATE trades SET status = 'expired' 
@@ -3759,9 +3440,9 @@ class MiddlemanBot extends EventEmitter {
          AND datetime(createdAt, '+5 hours') < datetime('now')`
       );
 
-      await interaction.reply({ content: `✅ ${getSnarkyResponse('success')} Cleanup completed. ${result.changes || 0} trades expired.`, ephemeral: true });
+      await interaction.editReply({ content: `✅ ${getSnarkyResponse('success')} Cleanup completed. ${result.changes || 0} trades expired.` });
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
@@ -3771,6 +3452,7 @@ class MiddlemanBot extends EventEmitter {
       return interaction.reply({ content: `❌ ${getSnarkyResponse('noPermission')}`, ephemeral: true });
     }
 
+    await interaction.deferReply({ ephemeral: true });
     const user = interaction.options.getUser('user');
     const amount = interaction.options.getInteger('amount');
 
@@ -3788,9 +3470,9 @@ class MiddlemanBot extends EventEmitter {
         .setFooter({ text: `Admin: ${interaction.user.tag}` })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed], ephemeral: true });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
@@ -3800,13 +3482,14 @@ class MiddlemanBot extends EventEmitter {
       return interaction.reply({ content: `❌ ${getSnarkyResponse('noPermission')}`, ephemeral: true });
     }
 
+    await interaction.deferReply({ ephemeral: true });
     const user = interaction.options.getUser('user');
     const amount = interaction.options.getInteger('amount');
 
     try {
       const balance = await this.casino.getBalance(user.id);
       if (amount > balance) {
-        return interaction.reply({ content: `❌ User only has ${balance.toLocaleString()} coins. Can't remove more than that, dumbass.`, ephemeral: true });
+        return await interaction.editReply({ content: `❌ User only has ${balance.toLocaleString()} coins. Can't remove more than that, dumbass.` });
       }
 
       const newBalance = await this.casino.updateBalance(user.id, -amount, false);
@@ -3822,9 +3505,9 @@ class MiddlemanBot extends EventEmitter {
         .setFooter({ text: `Admin: ${interaction.user.tag}` })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed], ephemeral: true });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
@@ -3834,6 +3517,7 @@ class MiddlemanBot extends EventEmitter {
       return interaction.reply({ content: `❌ ${getSnarkyResponse('noPermission')}`, ephemeral: true });
     }
 
+    await interaction.deferReply({ ephemeral: true });
     const user = interaction.options.getUser('user');
 
     try {
@@ -3854,9 +3538,9 @@ class MiddlemanBot extends EventEmitter {
         .setFooter({ text: `Admin: ${interaction.user.tag}` })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed], ephemeral: true });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      await interaction.reply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}`, ephemeral: true });
+      await interaction.editReply({ content: `❌ ${getSnarkyResponse('error')} ${error.message}` });
     }
   }
 
@@ -3871,59 +3555,11 @@ const bot = new MiddlemanBot();
 // Make bot accessible globally for API routes
 global.middlemanBot = bot;
 
-// Global error handlers for bot process
-process.on('uncaughtException', (error) => {
-  console.error('🚨 Bot: Uncaught Exception:', error);
-  console.error('Stack:', error.stack);
-  // Don't exit - try to keep bot running
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('🚨 Bot: Unhandled Rejection at:', promise);
-  console.error('Reason:', reason);
-  // Don't exit - try to keep bot running
-});
-
-// Graceful shutdown for bot
-process.on('SIGTERM', () => {
-  console.log('Bot: SIGTERM received, shutting down gracefully...');
-  bot.shutdown();
-});
-
-process.on('SIGINT', () => {
-  console.log('Bot: SIGINT received, shutting down gracefully...');
-  bot.shutdown();
-});
-
-// Add shutdown method to bot
-bot.shutdown = function() {
-  if (this.client && this.client.isReady()) {
-    this.client.destroy();
-    console.log('Bot client destroyed');
-  }
-  if (db) {
-    db.close((err) => {
-      if (err) {
-        console.error('Error closing bot database:', err);
-      } else {
-        console.log('Bot database connection closed');
-      }
-    });
-  }
-};
-
 // Start bot if token is provided
 if (process.env.DISCORD_BOT_TOKEN) {
   bot.login().catch((error) => {
     console.error('❌ Bot login failed:', error);
-    console.error('Stack:', error.stack);
-    // Retry login after 5 seconds
-    setTimeout(() => {
-      console.log('🔄 Retrying bot login...');
-      bot.login().catch((retryError) => {
-        console.error('❌ Bot login retry failed:', retryError);
-      });
-    }, 5000);
+    process.exit(1);
   });
 } else {
   console.warn('⚠️  DISCORD_BOT_TOKEN not set. Bot will not start.');

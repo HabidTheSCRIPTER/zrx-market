@@ -19,23 +19,9 @@ const reportsRoutes = require('./routes/reports');
 const adminRoutes = require('./routes/admin');
 const messagesRoutes = require('./routes/messages');
 const userRoutes = require('./routes/users');
-const newsRoutes = require('./routes/news');
-const profilesRoutes = require('./routes/profiles');
-const templatesRoutes = require('./routes/templates');
-const wishlistRoutes = require('./routes/wishlist');
-const disputesRoutes = require('./routes/disputes');
-const analyticsRoutes = require('./routes/analytics');
-const notificationsRoutes = require('./routes/notifications');
-const reviewsRoutes = require('./routes/reviews');
-const offersRoutes = require('./routes/offers');
-const smartAlertsRoutes = require('./routes/smart-alerts');
-const globalChatRoutes = require('./routes/global-chat');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// Trust proxy for Railway/reverse proxy setups
-app.set('trust proxy', true);
 
 // Middleware
 app.use(helmet({
@@ -47,6 +33,15 @@ app.use(cors({
   origin: process.env.BASE_URL || 'http://localhost:5173',
   credentials: true
 }));
+
+// Trust proxy configuration - only enable in production behind a reverse proxy
+// Set to 1 if behind one proxy (like nginx), or specific IP if you know the proxy IP
+// Set to false if not behind a proxy
+if (process.env.NODE_ENV === 'production' && process.env.TRUST_PROXY !== 'false') {
+  app.set('trust proxy', process.env.TRUST_PROXY || 1);
+} else {
+  app.set('trust proxy', false);
+}
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -95,41 +90,6 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/news', newsRoutes);
-app.use('/api/profiles', profilesRoutes);
-app.use('/api/templates', templatesRoutes);
-app.use('/api/wishlist', wishlistRoutes);
-app.use('/api/disputes', disputesRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/notifications', notificationsRoutes);
-app.use('/api/reviews', reviewsRoutes);
-app.use('/api/offers', offersRoutes);
-app.use('/api/smart-alerts', smartAlertsRoutes);
-app.use('/api/global-chat', globalChatRoutes);
-
-// Serve static files from React build (in production)
-let frontendDistPath = null;
-if (process.env.NODE_ENV === 'production') {
-  // Try multiple possible locations for frontend build
-  const frontendPaths = [
-    path.join(__dirname, './dist'),           // /app/dist (Railway with Dockerfile)
-    path.join(__dirname, '../dist'),          // /dist (alternative)
-    path.join(__dirname, '../frontend/dist')  // ../frontend/dist (dev/local)
-  ];
-  
-  for (const frontendPath of frontendPaths) {
-    if (fs.existsSync(frontendPath)) {
-      app.use(express.static(frontendPath));
-      frontendDistPath = frontendPath;
-      console.log(`✅ Serving frontend from: ${frontendPath}`);
-      break;
-    }
-  }
-  
-  if (!frontendDistPath) {
-    console.warn('⚠️  Frontend build not found. Tried:', frontendPaths.map(p => path.resolve(p)));
-  }
-}
 
 // Root route
 app.get('/', (req, res) => {
@@ -150,126 +110,28 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Handle React routing - return all requests to React app (in production)
-// This must be AFTER all API routes but BEFORE error handling
-if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
-    // Don't serve index.html for API routes or auth routes
-    if (req.path.startsWith('/api/') || req.path.startsWith('/auth/')) {
-      return res.status(404).json({ error: 'Not found' });
-    }
-    
-    // Use the same path that was found for static files
-    if (frontendDistPath) {
-      res.sendFile(path.join(frontendDistPath, 'index.html'));
-    } else {
-      // Fallback: try all possible paths
-      const fallbackPaths = [
-        path.join(__dirname, './dist/index.html'),
-        path.join(__dirname, '../dist/index.html'),
-        path.join(__dirname, '../frontend/dist/index.html')
-      ];
-      
-      let found = false;
-      for (const indexPath of fallbackPaths) {
-        if (fs.existsSync(indexPath)) {
-          res.sendFile(indexPath);
-          found = true;
-          break;
-        }
-      }
-      
-      if (!found) {
-        res.status(500).json({ 
-          error: 'Frontend not found',
-          message: 'Frontend build files are missing. Please rebuild the frontend.'
-        });
-      }
-    }
-  });
-}
-
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('❌ API Error:', err.message);
-  console.error('Stack:', err.stack);
-  console.error('URL:', req.url);
-  console.error('Method:', req.method);
-  
-  // Don't send stack trace to client in production
-  const isDevelopment = process.env.NODE_ENV !== 'production';
-  
+  console.error('Error:', err);
   res.status(err.status || 500).json({
-    error: err.message || 'Internal server error',
-    ...(isDevelopment && { stack: err.stack })
+    error: err.message || 'Internal server error'
   });
 });
-
-// Global error handlers
-process.on('uncaughtException', (error) => {
-  console.error('🚨 Uncaught Exception:', error);
-  console.error('Stack:', error.stack);
-  // Don't exit - try to keep the server running
-  // Log to error tracking service if available
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('🚨 Unhandled Rejection at:', promise);
-  console.error('Reason:', reason);
-  // Don't exit - try to keep the server running
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully...');
-  shutdown();
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully...');
-  shutdown();
-});
-
-let server;
-
-function shutdown() {
-  if (server) {
-    server.close(() => {
-      console.log('HTTP server closed');
-      const { db } = require('./db/config');
-      if (db) {
-        db.close((err) => {
-          if (err) {
-            console.error('Error closing database:', err);
-          } else {
-            console.log('Database connection closed');
-          }
-          process.exit(0);
-        });
-      } else {
-        process.exit(0);
-      }
-    });
-  } else {
-    process.exit(0);
-  }
-}
 
 // Initialize database and start server
 async function startServer() {
   try {
     await initDatabase();
-    console.log('✅ Database initialized');
+    console.log('Database initialized');
     
     // Start server after database is ready
-    server = app.listen(PORT, () => {
-      console.log(`✅ Server running on port ${PORT}`);
+    const server = app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
       console.log(`Base URL: ${process.env.BASE_URL || `http://localhost:${PORT}`}`);
       console.log(`Frontend: http://localhost:5173`);
       if (!process.env.DISCORD_BOT_TOKEN) {
         console.log(`\n⚠️  DISCORD_BOT_TOKEN not set. Bot will not start.`);
       }
-      console.log('\n✅ Server is ready!');
     });
 
     // Handle port already in use error
@@ -282,24 +144,11 @@ async function startServer() {
         console.error(`  taskkill /F /PID <PID>`);
         process.exit(1);
       } else {
-        console.error('Server error:', err);
         throw err;
       }
     });
-
-    // Keep-alive settings
-    server.keepAliveTimeout = 65000; // 65 seconds
-    server.headersTimeout = 66000; // 66 seconds
-
-    // Connection error handling
-    server.on('clientError', (err, socket) => {
-      console.error('Client error:', err);
-      socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
-    });
-
   } catch (err) {
-    console.error('❌ Database initialization error:', err);
-    console.error('Stack:', err.stack);
+    console.error('Database initialization error:', err);
     process.exit(1);
   }
 }
