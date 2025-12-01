@@ -11,11 +11,14 @@ RUN npm install --omit=dev
 # Copy backend files
 COPY backend/ ./
 
-# Copy bot directory and install bot dependencies
-COPY bot/package.json ../bot/
-COPY bot/ ../bot/
-WORKDIR /app/../bot
+# Copy bot directory to /bot (absolute path to ensure it's always available)
+COPY bot/ /bot/
+
+# Install bot dependencies
+WORKDIR /bot
 RUN npm install --omit=dev
+
+# Return to app directory
 WORKDIR /app
 
 # Expose port

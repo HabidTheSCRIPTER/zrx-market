@@ -146,10 +146,11 @@ async function startServer() {
         let botPath = null;
         // Try different possible paths
         const possiblePaths = [
+          '/bot/index.js', // Absolute path - Railway Dockerfile copies bot here
           path.join(__dirname, '../bot/index.js'),  // Local dev: backend/../bot/index.js
           path.join(process.cwd(), 'bot/index.js'), // Railway: /app/bot/index.js if cwd is /app
           path.join(__dirname, '../../bot/index.js'), // Alternative structure
-          '/app/bot/index.js', // Absolute path for Railway
+          '/app/bot/index.js', // Alternative absolute path
           path.join(process.cwd(), '../bot/index.js'), // Another alternative
           path.join(process.cwd(), 'backend/../bot/index.js') // If cwd is project root
         ];
