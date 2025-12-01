@@ -3,10 +3,10 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Copy package files first for better caching
-COPY package.json package-lock.json* ./
+COPY package.json ./
 
-# Install dependencies - use npm install if no lock file, otherwise npm ci
-RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
+# Install dependencies (use npm install since we don't have a complete lock file)
+RUN npm install --omit=dev
 
 # Copy backend files
 COPY . .
