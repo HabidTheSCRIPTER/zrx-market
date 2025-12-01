@@ -47,21 +47,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Serve frontend static files
-const frontendPath = path.join(__dirname, 'public');
-if (fs.existsSync(frontendPath)) {
-  app.use(express.static(frontendPath));
-  
-  // Serve index.html for all non-API routes (SPA routing)
-  app.get('*', (req, res, next) => {
-    // Skip API routes and auth routes
-    if (req.path.startsWith('/api') || req.path.startsWith('/auth') || req.path === '/health') {
-      return next();
-    }
-    res.sendFile(path.join(frontendPath, 'index.html'));
-  });
-}
-
 // Session configuration
 const sessionConfig = {
   secret: process.env.SESSION_SECRET || 'change-this-secret-in-production-min-32-chars-please',
