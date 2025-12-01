@@ -2,7 +2,7 @@
 node = "18"
 
 [phases.install]
-cmds = ["npm install --omit=dev"]
+cmds = ["npm install --omit=dev --no-package-lock"]
 
 [start]
 cmd = "npm start"
