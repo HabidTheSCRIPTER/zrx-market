@@ -39,7 +39,18 @@ const Dashboard = () => {
 
       // Handle trades
       if (tradesRes.status === 'fulfilled') {
-        setRecentTrades(tradesRes.value.data.trades || tradesRes.value.data.slice(0, 5) || []);
+        let trades = tradesRes.value.data.trades || tradesRes.value.data || [];
+        // Ensure it's an array and parse JSON strings
+        if (!Array.isArray(trades)) {
+          trades = [];
+        }
+        // Parse JSON strings for offered/wanted if needed
+        trades = trades.map(trade => ({
+          ...trade,
+          offered: typeof trade.offered === 'string' ? JSON.parse(trade.offered) : (Array.isArray(trade.offered) ? trade.offered : []),
+          wanted: typeof trade.wanted === 'string' ? JSON.parse(trade.wanted) : (Array.isArray(trade.wanted) ? trade.wanted : [])
+        }));
+        setRecentTrades(trades.slice(0, 5));
       } else {
         console.warn('Failed to load trades:', tradesRes.reason);
         setRecentTrades([]); // Set empty array on error
@@ -47,7 +58,18 @@ const Dashboard = () => {
 
       // Handle favorites
       if (favoritesRes.status === 'fulfilled') {
-        setFavorites(favoritesRes.value.data.slice(0, 5));
+        let favorites = favoritesRes.value.data || [];
+        // Ensure it's an array
+        if (!Array.isArray(favorites)) {
+          favorites = [];
+        }
+        // Parse JSON strings for offered/wanted if needed
+        favorites = favorites.map(trade => ({
+          ...trade,
+          offered: typeof trade.offered === 'string' ? JSON.parse(trade.offered) : (Array.isArray(trade.offered) ? trade.offered : []),
+          wanted: typeof trade.wanted === 'string' ? JSON.parse(trade.wanted) : (Array.isArray(trade.wanted) ? trade.wanted : [])
+        }));
+        setFavorites(favorites.slice(0, 5));
       } else {
         console.warn('Failed to load favorites:', favoritesRes.reason);
         setFavorites([]); // Set empty array on error
@@ -123,15 +145,15 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {analytics?.topItems && analytics.topItems.length > 0 && (
+        {analytics?.topItems && Array.isArray(analytics.topItems) && analytics.topItems.length > 0 && (
           <div className="dashboard-card top-items-card">
             <h2>Your Most Traded Items</h2>
             <div className="top-items-list">
               {analytics.topItems.slice(0, 5).map((item, index) => (
                 <div key={index} className="top-item">
                   <span className="item-rank">#{index + 1}</span>
-                  <span className="item-name">{item.name}</span>
-                  <span className="item-count">{item.count}x</span>
+                  <span className="item-name">{item?.name || item}</span>
+                  <span className="item-count">{item?.count || 0}x</span>
                 </div>
               ))}
             </div>
@@ -154,10 +176,10 @@ const Dashboard = () => {
                       </span>
                     </div>
                     <div className="trade-item-content">
-                      {trade.offered?.slice(0, 2).map((item, i) => (
-                        <span key={i} className="trade-item-name">{item.name}</span>
+                      {Array.isArray(trade.offered) && trade.offered.slice(0, 2).map((item, i) => (
+                        <span key={i} className="trade-item-name">{item?.name || item}</span>
                       ))}
-                      {trade.offered?.length > 2 && <span>+{trade.offered.length - 2} more</span>}
+                      {Array.isArray(trade.offered) && trade.offered.length > 2 && <span>+{trade.offered.length - 2} more</span>}
                     </div>
                   </div>
                 </Link>
@@ -182,8 +204,8 @@ const Dashboard = () => {
                       <span className="trade-id">#{trade.id}</span>
                     </div>
                     <div className="trade-item-content">
-                      {trade.offered?.slice(0, 2).map((item, i) => (
-                        <span key={i} className="trade-item-name">{item.name}</span>
+                      {Array.isArray(trade.offered) && trade.offered.slice(0, 2).map((item, i) => (
+                        <span key={i} className="trade-item-name">{item?.name || item}</span>
                       ))}
                     </div>
                   </div>

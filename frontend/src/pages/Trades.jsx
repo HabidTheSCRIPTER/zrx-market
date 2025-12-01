@@ -19,7 +19,22 @@ const Trades = () => {
       const response = await axios.get('/api/trades', {
         params: { page, limit: 20, search }
       });
-      setTrades(response.data.trades || []);
+      let trades = response.data.trades || response.data || [];
+      // Ensure it's an array
+      if (!Array.isArray(trades)) {
+        trades = [];
+      }
+      // Parse JSON strings for offered/wanted if needed
+      trades = trades.map(trade => ({
+        ...trade,
+        offered: typeof trade.offered === 'string' ? (() => {
+          try { return JSON.parse(trade.offered); } catch { return []; }
+        })() : (Array.isArray(trade.offered) ? trade.offered : []),
+        wanted: typeof trade.wanted === 'string' ? (() => {
+          try { return JSON.parse(trade.wanted); } catch { return []; }
+        })() : (Array.isArray(trade.wanted) ? trade.wanted : [])
+      }));
+      setTrades(trades);
       setTotalPages(response.data.pagination?.totalPages || 1);
     } catch (error) {
       console.error('Error fetching trades:', error);
