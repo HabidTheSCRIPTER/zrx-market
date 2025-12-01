@@ -11,6 +11,9 @@ RUN npm install --omit=dev
 # Copy backend files
 COPY backend/ ./
 
+# Copy bot directory so it can be loaded by server.js
+COPY bot/ ../bot/
+
 # Expose port
 EXPOSE 8080
 
