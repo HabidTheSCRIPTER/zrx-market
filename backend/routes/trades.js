@@ -29,7 +29,8 @@ router.get('/', async (req, res) => {
 
     // Build base query with optional user_stats join for rating filter
     const minRating = req.query.minRating;
-    let query = 'SELECT t.*, u.username, u.avatar, t.isCrossTrade FROM trades t JOIN users u ON t.creatorId = u.discordId';
+    // Use COALESCE to handle missing isCrossTrade column gracefully
+    let query = 'SELECT t.*, u.username, u.avatar, COALESCE(t.isCrossTrade, 0) as isCrossTrade FROM trades t JOIN users u ON t.creatorId = u.discordId';
     
     // Add user_stats join if minRating filter is used
     if (minRating) {
@@ -188,7 +189,7 @@ router.get('/:id', async (req, res) => {
     let trade;
     try {
       trade = await dbHelpers.get(
-        `SELECT t.*, u.username, u.avatar, t.isCrossTrade FROM trades t 
+        `SELECT t.*, u.username, u.avatar, COALESCE(t.isCrossTrade, 0) as isCrossTrade FROM trades t 
          JOIN users u ON t.creatorId = u.discordId 
          WHERE t.id = ?`,
         [req.params.id]

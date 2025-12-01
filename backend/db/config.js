@@ -60,6 +60,78 @@ const db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READWRITE | sqlite3.OPEN_C
   }
 });
 
+// Run migrations to add missing columns
+function runMigrations() {
+  return new Promise((resolve) => {
+    console.log('🔄 Running database migrations...');
+    let migrationsRun = 0;
+    let migrationsSucceeded = 0;
+
+    // Check and add isCrossTrade to trades
+    db.all(`PRAGMA table_info(trades)`, [], (err, columns) => {
+      if (!err && columns) {
+        const hasColumn = columns.some(col => col.name === 'isCrossTrade');
+        if (!hasColumn) {
+          migrationsRun++;
+          db.run(`ALTER TABLE trades ADD COLUMN isCrossTrade INTEGER DEFAULT 0`, (alterErr) => {
+            if (!alterErr) {
+              console.log('✅ Added isCrossTrade column to trades');
+              migrationsSucceeded++;
+            } else {
+              console.error('❌ Failed to add isCrossTrade:', alterErr.message);
+            }
+            checkComplete();
+          });
+        } else {
+          checkComplete();
+        }
+      } else {
+        checkComplete();
+      }
+    });
+
+    // Check and add isRead to messages
+    db.all(`PRAGMA table_info(messages)`, [], (err, columns) => {
+      if (!err && columns) {
+        const hasColumn = columns.some(col => col.name === 'isRead');
+        if (!hasColumn) {
+          migrationsRun++;
+          db.run(`ALTER TABLE messages ADD COLUMN isRead INTEGER DEFAULT 0`, (alterErr) => {
+            if (!alterErr) {
+              console.log('✅ Added isRead column to messages');
+              migrationsSucceeded++;
+            } else {
+              console.error('❌ Failed to add isRead:', alterErr.message);
+            }
+            checkComplete();
+          });
+        } else {
+          checkComplete();
+        }
+      } else {
+        checkComplete();
+      }
+    });
+
+    function checkComplete() {
+      if (migrationsRun === 0 || migrationsSucceeded === migrationsRun) {
+        if (migrationsRun > 0) {
+          console.log(`✅ Migrations complete: ${migrationsSucceeded}/${migrationsRun} succeeded`);
+        }
+        resolve();
+      }
+    }
+
+    // Timeout after 5 seconds
+    setTimeout(() => {
+      if (migrationsRun === 0) {
+        console.log('⚠️  No migrations needed or tables do not exist yet');
+        resolve();
+      }
+    }, 5000);
+  });
+}
+
 // Initialize database schema
 function initDatabase() {
   return new Promise((resolve, reject) => {
@@ -124,10 +196,26 @@ function initDatabase() {
             errors.push({ table: 'trades', error: err });
           } else {
             // Add missing isCrossTrade column if table already exists (migration)
-            db.run(`ALTER TABLE trades ADD COLUMN isCrossTrade INTEGER DEFAULT 0`, (alterErr) => {
-              // Ignore error if column already exists
-              if (alterErr && !alterErr.message.includes('duplicate column')) {
-                console.warn('⚠️  Could not add isCrossTrade column (may already exist):', alterErr.message);
+            // Check if column exists first by trying to query it
+            db.get(`PRAGMA table_info(trades)`, [], (pragmaErr, rows) => {
+              if (!pragmaErr) {
+                db.all(`PRAGMA table_info(trades)`, [], (infoErr, columns) => {
+                  if (!infoErr) {
+                    const hasColumn = columns.some(col => col.name === 'isCrossTrade');
+                    if (!hasColumn) {
+                      console.log('🔄 Adding missing isCrossTrade column to trades table...');
+                      db.run(`ALTER TABLE trades ADD COLUMN isCrossTrade INTEGER DEFAULT 0`, (alterErr) => {
+                        if (alterErr) {
+                          console.error('❌ Failed to add isCrossTrade column:', alterErr.message);
+                        } else {
+                          console.log('✅ Successfully added isCrossTrade column');
+                        }
+                      });
+                    } else {
+                      console.log('✅ isCrossTrade column already exists');
+                    }
+                  }
+                });
               }
             });
           }
@@ -226,10 +314,21 @@ function initDatabase() {
             errors.push({ table: 'messages', error: err });
           } else {
             // Add missing isRead column if table already exists (migration)
-            db.run(`ALTER TABLE messages ADD COLUMN isRead INTEGER DEFAULT 0`, (alterErr) => {
-              // Ignore error if column already exists
-              if (alterErr && !alterErr.message.includes('duplicate column')) {
-                console.warn('⚠️  Could not add isRead column (may already exist):', alterErr.message);
+            db.all(`PRAGMA table_info(messages)`, [], (infoErr, columns) => {
+              if (!infoErr) {
+                const hasColumn = columns.some(col => col.name === 'isRead');
+                if (!hasColumn) {
+                  console.log('🔄 Adding missing isRead column to messages table...');
+                  db.run(`ALTER TABLE messages ADD COLUMN isRead INTEGER DEFAULT 0`, (alterErr) => {
+                    if (alterErr) {
+                      console.error('❌ Failed to add isRead column:', alterErr.message);
+                    } else {
+                      console.log('✅ Successfully added isRead column');
+                    }
+                  });
+                } else {
+                  console.log('✅ isRead column already exists');
+                }
               }
             });
           }
@@ -348,5 +447,5 @@ const dbHelpers = {
   }
 };
 
-module.exports = { db, initDatabase, dbHelpers };
+module.exports = { db, initDatabase, runMigrations, dbHelpers };
 

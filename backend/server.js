@@ -8,7 +8,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const fs = require('fs');
-const { initDatabase } = require('./db/config');
+const { initDatabase, runMigrations } = require('./db/config');
 const { apiLimiter } = require('./middleware/rateLimit');
 
 // Import routes
@@ -145,6 +145,9 @@ async function startServer() {
   try {
     await initDatabase();
     console.log('Database initialized');
+    
+    // Run migrations to add any missing columns
+    await runMigrations();
     
     // Start server after database is ready
     const server = app.listen(PORT, () => {

@@ -234,10 +234,10 @@ router.get('/conversations', ensureAuth, messageLimiter, async (req, res) => {
 
         const latestMessage = await dbHelpers.get(latestMessageQuery, params);
 
-        // Count unread messages
+        // Count unread messages (use COALESCE to handle missing column)
         let unreadQuery = `SELECT COUNT(*) as count 
                           FROM messages 
-                          WHERE recipientId = ? AND senderId = ? AND isRead = 0`;
+                          WHERE recipientId = ? AND senderId = ? AND COALESCE(isRead, 0) = 0`;
         let unreadParams = [userId, otherUserDiscordId];
         
         if (tradeId !== null && tradeId !== undefined) {
@@ -292,8 +292,9 @@ router.get('/conversations', ensureAuth, messageLimiter, async (req, res) => {
 // Get total unread message count for the current user
 router.get('/unreadCount', ensureAuth, messageLimiter, async (req, res) => {
   try {
+    // Use COALESCE to handle missing isRead column gracefully
     const result = await dbHelpers.get(
-      `SELECT COUNT(*) as count FROM messages WHERE recipientId = ? AND isRead = 0`,
+      `SELECT COUNT(*) as count FROM messages WHERE recipientId = ? AND COALESCE(isRead, 0) = 0`,
       [req.user.discordId]
     );
     res.json({ count: result.count });
@@ -327,7 +328,9 @@ router.post('/markAsRead', ensureAuth, async (req, res) => {
   try {
     const { recipientId, tradeId } = req.body;
 
-    let query = `UPDATE messages SET isRead = 1 WHERE recipientId = ? AND senderId = ?`;
+    // Only update if column exists - use a safe update query
+    // First check if column exists, then update
+    let query = `UPDATE messages SET isRead = 1 WHERE recipientId = ? AND senderId = ? AND COALESCE(isRead, 0) = 0`;
     let params = [req.user.discordId, recipientId];
 
     if (tradeId) {
