@@ -27,6 +27,9 @@ const notificationsRoutes = require('./routes/notifications');
 const offersRoutes = require('./routes/offers');
 const wishlistRoutes = require('./routes/wishlist');
 const brainrotRoutes = require('./routes/brainrot-values');
+const templatesRoutes = require('./routes/templates');
+const disputesRoutes = require('./routes/disputes');
+const newsRoutes = require('./routes/news');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -130,6 +133,9 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/offers', offersRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/brainrot', brainrotRoutes);
+app.use('/api/templates', templatesRoutes);
+app.use('/api/disputes', disputesRoutes);
+app.use('/api/news', newsRoutes);
 
 // Health check (before static files)
 app.get('/health', (req, res) => {
