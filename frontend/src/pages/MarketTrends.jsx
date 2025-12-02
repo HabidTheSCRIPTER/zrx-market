@@ -93,7 +93,7 @@ const MarketTrends = () => {
                 <div className="price-trend-header">
                   <h3>{trend.name}</h3>
                   <span className={`trend-badge trend-${trend.trend}`}>
-                    {trend.trend === 'up' ? '=���' : trend.trend === 'down' ? '=���' : 'GP�n+�'} {trend.trend}
+                    {trend.trend === 'up' ? '📈' : trend.trend === 'down' ? '📉' : '➡️'} {trend.trend}
                   </span>
                 </div>
                 <div className="price-trend-stats">
@@ -134,7 +134,3 @@ const formatPrice = (price) => {
 };
 
 export default MarketTrends;
-
-
-
-
