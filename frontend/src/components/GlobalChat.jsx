@@ -86,7 +86,8 @@ const GlobalChat = () => {
       const response = await axios.get('/api/global-chat', {
         params: { limit: 100 }
       });
-      setMessages(response.data);
+      const data = Array.isArray(response.data) ? response.data : [];
+      setMessages(data);
     } catch (error) {
       console.error('Error fetching global chat messages:', error);
     }
@@ -110,7 +111,10 @@ const GlobalChat = () => {
         content: newMessage
       });
       
-      setMessages(prev => [...prev, response.data]);
+      setMessages(prev => {
+        const safePrev = Array.isArray(prev) ? prev : [];
+        return [...safePrev, response.data];
+      });
       setNewMessage('');
       setTimeout(scrollToBottom, 100);
     } catch (error) {
@@ -160,10 +164,10 @@ const GlobalChat = () => {
       </div>
       
       <div className="global-chat-messages" ref={messageListRef}>
-        {messages.length === 0 ? (
+        {(!Array.isArray(messages) || messages.length === 0) ? (
           <div className="no-messages">No messages yet. Be the first to chat!</div>
         ) : (
-          messages.map((message) => (
+          (Array.isArray(messages) ? messages : []).map((message) => (
             <div key={message.id} className="global-chat-message">
               <img
                 src={message.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}
