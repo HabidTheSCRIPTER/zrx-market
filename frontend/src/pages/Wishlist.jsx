@@ -90,7 +90,7 @@ const Wishlist = () => {
                   className="remove-btn"
                   title="Remove from wishlist"
                 >
-                  +ù
+                  Ã—ï¿½
                 </button>
               </div>
               <div className="wishlist-card-content">
