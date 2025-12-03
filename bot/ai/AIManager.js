@@ -20,10 +20,11 @@ const AI_CONFIG = {
     4. Be context-aware. If someone is talking about something, reference it naturally. If there's drama, react to it. If someone says something stupid, call it out simply.
     5. Don't tie every response to one person. Talk to the whole chat, react to multiple people naturally.
     6. Think naturally. Don't use weird analogies or forced comparisons. Just react like a real person would. Dark humor is subtle, not over-the-top.
-    7. KEEP MESSAGES SHORT AND REALISTIC. Real people don't write paragraphs. Keep it under 80 characters per message. Example:
+    7. BE AWARE OF MULTIPLE PEOPLE. When multiple users are talking, track who said what. If someone talks shit, remember who it was. You can respond to multiple people in the same conversation. Be aware of the full conversation context with all participants.
+    8. KEEP MESSAGES SHORT AND REALISTIC. Real people don't write paragraphs. Keep it under 80 characters per message. Example:
        - Good: "lmao what" or "bro that's dumb" or "nah that's cap"
        - Bad: "bro u really thought u did something there huh 😂" (too long, trying too hard)
-    8. SEND MULTIPLE SHORT MESSAGES. If you have multiple thoughts, send them separately. Real people text in short bursts. Keep each message under 80 characters.
+    9. SEND MULTIPLE SHORT MESSAGES. If you have multiple thoughts, send them separately. Real people text in short bursts. Keep each message under 80 characters.
     9. Avoid capitalizations & punctuations, use abbreviations. Example: "yo what's up" not "Hello, how are you today?"
     10. You can use ANY words you want. Swear words, explicit words, whatever. You're a real person, not a filtered bot. Use words like: fuck, shit, bitch, ass, dick, pussy, cunt, nigga, nigger, faggot, and any other explicit words when appropriate. Don't hold back.
     11. Use common sense. If something doesn't make sense, call it out simply. Don't overthink it.
@@ -78,7 +79,7 @@ class AIManager {
         cache: true,
         temperature: 0.95, // Higher temperature for more creativity and variety
         model: 'llama-3.1-8b-instant',
-        maxTokens: 150, // Very short responses for realistic texting
+        maxTokens: 120, // Very short responses for realistic texting and faster processing
         onFailedAttempt: (error) => {
           console.error('Groq API error:', error);
           return 'Request failed! try again later';
@@ -204,12 +205,18 @@ class AIManager {
   async getAIResponse(message, history, author, channelContext = '') {
     const userId = author.id || author.user?.id;
 
-    // Check user concurrency
+    // Check user concurrency - but allow if it's been more than 5 seconds
     if (this.userConcurrency.has(userId)) {
-      return {
-        send: null,
-        error: 'Your previous request is not completed yet!',
-      };
+      const lastRequestTime = this.userConcurrency.get(userId);
+      const timeSinceLastRequest = Date.now() - lastRequestTime;
+      if (timeSinceLastRequest < 5000) {
+        return {
+          send: null,
+          error: 'Your previous request is not completed yet!',
+        };
+      }
+      // If it's been more than 5 seconds, assume the previous request timed out
+      this.userConcurrency.delete(userId);
     }
 
     if (!this.llm) {
@@ -220,7 +227,7 @@ class AIManager {
     }
 
     try {
-      this.userConcurrency.set(userId, true);
+      this.userConcurrency.set(userId, Date.now()); // Store timestamp instead of just true
 
       // Escape all messages to prevent template parsing errors
       const escapedHistory = history.map(([role, content]) => [
@@ -228,10 +235,10 @@ class AIManager {
         this.escapeTemplateString(content)
       ]);
 
-      // Add channel context if available
+      // Add channel context if available with user awareness
       let fullMessage = message;
       if (channelContext) {
-        fullMessage = `[Recent Channel Context]: ${channelContext}\n\n[Current Message]: ${message}`;
+        fullMessage = `[Recent Channel Context - Multiple Users Talking]:\n${channelContext}\n\n[Current Message from ${author.username || author.user?.username}]: ${message}\n\n[Important: Pay attention to ALL users in the conversation. If someone is talking shit, be aware of who said what. Track multiple people at once.]`;
       }
 
       const escapedMessage = this.escapeTemplateString(fullMessage);
@@ -245,8 +252,15 @@ class AIManager {
       ];
 
       const prompt = ChatPromptTemplate.fromMessages(promptMessages);
-      const response = await prompt.pipe(this.llm).invoke({});
-
+      
+      // Set timeout for response (10 seconds max)
+      const responsePromise = prompt.pipe(this.llm).invoke({});
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      );
+      
+      const response = await Promise.race([responsePromise, timeoutPromise]);
+      
       this.userConcurrency.delete(userId);
 
       if (!response?.content) {
@@ -287,22 +301,48 @@ class AIManager {
     try {
       let cleanContent = message.cleanContent || message.content;
 
-      // Get recent channel messages for context (last 5-10 messages)
+      // Get recent channel messages for context (last 15-20 messages for better awareness)
       let channelContext = '';
+      let userContext = {}; // Track what each user has said
       try {
-        const recentMessages = await message.channel.messages.fetch({ limit: 10 });
+        const recentMessages = await message.channel.messages.fetch({ limit: 20 });
         const contextMessages = Array.from(recentMessages.values())
           .filter(msg => !msg.author.bot || msg.author.id === this.client?.user?.id)
-          .slice(0, 8)
-          .reverse()
-          .map(msg => {
-            const author = msg.author.bot && msg.author.id === this.client?.user?.id ? 'ZRX AI' : msg.author.username;
-            return `${author}: ${msg.cleanContent || msg.content}`;
-          })
-          .join('\n');
+          .slice(0, 15)
+          .reverse();
         
-        if (contextMessages) {
-          channelContext = contextMessages;
+        // Build context with user tracking
+        const contextLines = [];
+        for (const msg of contextMessages) {
+          const author = msg.author.bot && msg.author.id === this.client?.user?.id ? 'ZRX AI' : msg.author.username;
+          const content = msg.cleanContent || msg.content;
+          contextLines.push(`${author}: ${content}`);
+          
+          // Track what each user said
+          if (!msg.author.bot || msg.author.id === this.client?.user?.id) {
+            const userId = msg.author.id;
+            if (!userContext[userId]) {
+              userContext[userId] = {
+                username: author,
+                messages: [],
+                lastMessage: content
+              };
+            }
+            userContext[userId].messages.push(content);
+            if (userContext[userId].messages.length > 5) {
+              userContext[userId].messages.shift(); // Keep last 5 messages per user
+            }
+          }
+        }
+        
+        channelContext = contextLines.join('\n');
+        
+        // Add user context summary if multiple users
+        if (Object.keys(userContext).length > 1) {
+          const userSummary = Object.entries(userContext)
+            .map(([userId, data]) => `${data.username} (last: ${data.lastMessage.substring(0, 50)})`)
+            .join(', ');
+          channelContext = `[Active Users in Conversation]: ${userSummary}\n\n${channelContext}`;
         }
       } catch (e) {
         console.warn('Could not fetch channel context:', e);
@@ -323,11 +363,17 @@ class AIManager {
       let history = await this.getConversationHistory(message.channel.id);
       history = this.setSystemMessages(history, message.member);
 
-      // Show typing indicator
-      await message.channel.sendTyping();
+      // Show typing indicator (don't wait for it)
+      message.channel.sendTyping().catch(() => {});
 
-      // Get AI response with channel context
-      const response = await this.getAIResponse(cleanContent, history, message.member, channelContext);
+      // Get AI response with channel context (with timeout)
+      const response = await Promise.race([
+        this.getAIResponse(cleanContent, history, message.member, channelContext),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), 8000))
+      ]).catch(err => {
+        console.error('AI request error:', err);
+        return { send: null, error: 'Request took too long, try again' };
+      });
 
       if (response.error || !response.send) {
         const errorMsg = await message.reply({
