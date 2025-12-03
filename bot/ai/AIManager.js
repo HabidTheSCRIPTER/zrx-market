@@ -68,9 +68,9 @@ class AIManager {
       this.llm = new ChatGroq({
         apiKey: apiKey,
         cache: true,
-        temperature: 0.8,
+        temperature: 0.95, // Higher temperature for more creativity and variety
         model: 'llama-3.1-8b-instant',
-        maxTokens: 256,
+        maxTokens: 300, // Slightly more tokens for better responses
         onFailedAttempt: (error) => {
           console.error('Groq API error:', error);
           return 'Request failed! try again later';
@@ -141,10 +141,11 @@ class AIManager {
     };
   }
 
-  async getConversationHistory(userId) {
+  async getConversationHistory(channelId) {
+    // Use channel-based history instead of user-based for full context
     const result = await this.db.get(
       'SELECT history FROM ai_conversations WHERE userId = ?',
-      [userId]
+      [`channel_${channelId}`] // Use channel ID as the key
     );
     if (result?.history) {
       try {
@@ -156,11 +157,12 @@ class AIManager {
     return [];
   }
 
-  async saveConversationHistory(userId, history) {
+  async saveConversationHistory(channelId, history) {
+    // Save channel-based history for full conversation context
     const limitedHistory = history.slice(-AI_CONFIG.Max_Conversation_History);
     await this.db.run(
       `INSERT OR REPLACE INTO ai_conversations (userId, history) VALUES (?, ?)`,
-      [userId, JSON.stringify(limitedHistory)]
+      [`channel_${channelId}`, JSON.stringify(limitedHistory)]
     );
   }
 
@@ -191,7 +193,7 @@ class AIManager {
     return messages;
   }
 
-  async getAIResponse(message, history, author) {
+  async getAIResponse(message, history, author, channelContext = '') {
     const userId = author.id || author.user?.id;
 
     // Check user concurrency
@@ -218,7 +220,13 @@ class AIManager {
         this.escapeTemplateString(content)
       ]);
 
-      const escapedMessage = this.escapeTemplateString(message);
+      // Add channel context if available
+      let fullMessage = message;
+      if (channelContext) {
+        fullMessage = `[Recent Channel Context]: ${channelContext}\n\n[Current Message]: ${message}`;
+      }
+
+      const escapedMessage = this.escapeTemplateString(fullMessage);
       const escapedPrompt = this.escapeTemplateString(AI_CONFIG.Prompt);
 
       // Prepare prompt with history
@@ -271,6 +279,27 @@ class AIManager {
     try {
       let cleanContent = message.cleanContent || message.content;
 
+      // Get recent channel messages for context (last 5-10 messages)
+      let channelContext = '';
+      try {
+        const recentMessages = await message.channel.messages.fetch({ limit: 10 });
+        const contextMessages = Array.from(recentMessages.values())
+          .filter(msg => !msg.author.bot || msg.author.id === this.client?.user?.id)
+          .slice(0, 8)
+          .reverse()
+          .map(msg => {
+            const author = msg.author.bot && msg.author.id === this.client?.user?.id ? 'ZRX AI' : msg.author.username;
+            return `${author}: ${msg.cleanContent || msg.content}`;
+          })
+          .join('\n');
+        
+        if (contextMessages) {
+          channelContext = contextMessages;
+        }
+      } catch (e) {
+        console.warn('Could not fetch channel context:', e);
+      }
+
       // Handle message references
       if (message.reference?.messageId) {
         const referencedMsg = await message.channel.messages.fetch(message.reference.messageId).catch(() => null);
@@ -278,19 +307,19 @@ class AIManager {
           // Escape the reference message content
           const escapedRefContent = this.escapeTemplateString(referencedMsg.content);
           const escapedAuthor = this.escapeTemplateString(referencedMsg.author.username);
-          cleanContent += `\n[Reference Message]: message: ${escapedRefContent}, author: ${escapedAuthor}`;
+          cleanContent += `\n[Replying to ${escapedAuthor}]: ${escapedRefContent}`;
         }
       }
 
-      // Get conversation history
-      let history = await this.getConversationHistory(message.author.id);
+      // Get channel-based conversation history for full context
+      let history = await this.getConversationHistory(message.channel.id);
       history = this.setSystemMessages(history, message.member);
 
       // Show typing indicator
       await message.channel.sendTyping();
 
-      // Get AI response
-      const response = await this.getAIResponse(cleanContent, history, message.member);
+      // Get AI response with channel context
+      const response = await this.getAIResponse(cleanContent, history, message.member, channelContext);
 
       if (response.error || !response.send) {
         const errorMsg = await message.reply({
@@ -305,14 +334,15 @@ class AIManager {
 
       const replyMsg = await message.reply({ content: truncatedContent });
 
-      // Update conversation history
+      // Update channel-based conversation history with full context
+      const messageWithAuthor = `${message.author.username}: ${cleanContent}`;
       const newHistory = [
-        ...history.slice(-AI_CONFIG.Max_Conversation_History),
-        ['human', cleanContent],
+        ...history.slice(-AI_CONFIG.Max_Conversation_History + 2),
+        ['human', messageWithAuthor],
         ['ai', truncatedContent],
       ];
 
-      await this.saveConversationHistory(message.author.id, newHistory);
+      await this.saveConversationHistory(message.channel.id, newHistory);
 
       return true;
     } catch (error) {
