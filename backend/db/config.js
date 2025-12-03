@@ -297,10 +297,12 @@ function initDatabase() {
           status TEXT DEFAULT 'pending',
           middlemanId TEXT,
           threadId TEXT,
+          tradeId INTEGER,
           user1Accepted INTEGER DEFAULT 0,
           user2Accepted INTEGER DEFAULT 0,
           createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (requesterId) REFERENCES users(discordId)
+          FOREIGN KEY (requesterId) REFERENCES users(discordId),
+          FOREIGN KEY (tradeId) REFERENCES trades(id)
         )`, (err) => {
           if (err) {
             console.error('❌ Error creating middleman table:', err.message);
@@ -308,20 +310,30 @@ function initDatabase() {
             errors.push({ table: 'middleman', error: err });
           } else {
             // Add missing columns if table already exists (migration)
-            db.run(`ALTER TABLE middleman ADD COLUMN threadId TEXT`, (alterErr) => {
-              // Ignore error if column already exists
-              if (alterErr && !alterErr.message.includes('duplicate column')) {
-                console.warn('⚠️  Could not add threadId column (may already exist):', alterErr.message);
-              }
-            });
-            db.run(`ALTER TABLE middleman ADD COLUMN user1Accepted INTEGER DEFAULT 0`, (alterErr) => {
-              if (alterErr && !alterErr.message.includes('duplicate column')) {
-                console.warn('⚠️  Could not add user1Accepted column (may already exist):', alterErr.message);
-              }
-            });
-            db.run(`ALTER TABLE middleman ADD COLUMN user2Accepted INTEGER DEFAULT 0`, (alterErr) => {
-              if (alterErr && !alterErr.message.includes('duplicate column')) {
-                console.warn('⚠️  Could not add user2Accepted column (may already exist):', alterErr.message);
+            db.all(`PRAGMA table_info(middleman)`, [], (infoErr, columns) => {
+              if (!infoErr) {
+                const columnNames = columns.map(col => col.name);
+                const columnsToAdd = [
+                  { name: 'threadId', sql: 'ALTER TABLE middleman ADD COLUMN threadId TEXT' },
+                  { name: 'tradeId', sql: 'ALTER TABLE middleman ADD COLUMN tradeId INTEGER' },
+                  { name: 'user1Accepted', sql: 'ALTER TABLE middleman ADD COLUMN user1Accepted INTEGER DEFAULT 0' },
+                  { name: 'user2Accepted', sql: 'ALTER TABLE middleman ADD COLUMN user2Accepted INTEGER DEFAULT 0' }
+                ];
+
+                columnsToAdd.forEach(({ name, sql }) => {
+                  if (!columnNames.includes(name)) {
+                    console.log(`🔄 Adding missing ${name} column to middleman table...`);
+                    db.run(sql, (alterErr) => {
+                      if (alterErr) {
+                        console.error(`❌ Failed to add ${name} column:`, alterErr.message);
+                      } else {
+                        console.log(`✅ Successfully added ${name} column`);
+                      }
+                    });
+                  } else {
+                    console.log(`✅ ${name} column already exists`);
+                  }
+                });
               }
             });
           }
@@ -355,6 +367,25 @@ function initDatabase() {
             console.error('❌ Error creating blacklist table:', err.message);
             hasError = true;
             errors.push({ table: 'blacklist', error: err });
+          }
+        });
+
+        // Wishlist table
+        db.run(`CREATE TABLE IF NOT EXISTS wishlist (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          userId TEXT NOT NULL,
+          tradeId INTEGER NOT NULL,
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (userId) REFERENCES users(discordId),
+          FOREIGN KEY (tradeId) REFERENCES trades(id),
+          UNIQUE(userId, tradeId)
+        )`, (err) => {
+          if (err) {
+            console.error('❌ Error creating wishlist table:', err.message);
+            hasError = true;
+            errors.push({ table: 'wishlist', error: err });
+          } else {
+            console.log('✅ Wishlist table created/verified');
           }
         });
 
