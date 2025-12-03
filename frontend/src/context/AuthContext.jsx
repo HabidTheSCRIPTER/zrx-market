@@ -21,6 +21,7 @@ export const AuthProvider = ({ children }) => {
   const [isBridged, setIsBridged] = useState(false);
   const messageOverlayRef = useRef(null);
   const [toasts, setToasts] = useState([]);
+  const [alert, setAlert] = useState({ show: false, message: '', type: 'info' });
 
   useEffect(() => {
     checkAuth();
@@ -97,6 +98,14 @@ export const AuthProvider = ({ children }) => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   };
 
+  const showAlert = (message, type = 'info') => {
+    setAlert({ show: true, message, type });
+  };
+
+  const hideAlert = () => {
+    setAlert({ show: false, message: '', type: 'info' });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -118,6 +127,9 @@ export const AuthProvider = ({ children }) => {
         showToast,
         removeToast,
         toasts,
+        showAlert,
+        hideAlert,
+        alert,
       }}
     >
       {children}

@@ -366,32 +366,47 @@ function initDatabase() {
           recipientId TEXT NOT NULL,
           content TEXT NOT NULL,
           isRead INTEGER DEFAULT 0,
+          reportId INTEGER,
+          isBridged INTEGER DEFAULT 0,
+          discordThreadId TEXT,
+          discordMessageId TEXT,
           createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (tradeId) REFERENCES trades(id),
           FOREIGN KEY (senderId) REFERENCES users(discordId),
-          FOREIGN KEY (recipientId) REFERENCES users(discordId)
+          FOREIGN KEY (recipientId) REFERENCES users(discordId),
+          FOREIGN KEY (reportId) REFERENCES reports(id)
         )`, (err) => {
           if (err) {
             console.error('❌ Error creating messages table:', err.message);
             hasError = true;
             errors.push({ table: 'messages', error: err });
           } else {
-            // Add missing isRead column if table already exists (migration)
+            // Add missing columns if table already exists (migration)
             db.all(`PRAGMA table_info(messages)`, [], (infoErr, columns) => {
               if (!infoErr) {
-                const hasColumn = columns.some(col => col.name === 'isRead');
-                if (!hasColumn) {
-                  console.log('🔄 Adding missing isRead column to messages table...');
-                  db.run(`ALTER TABLE messages ADD COLUMN isRead INTEGER DEFAULT 0`, (alterErr) => {
-                    if (alterErr) {
-                      console.error('❌ Failed to add isRead column:', alterErr.message);
-                    } else {
-                      console.log('✅ Successfully added isRead column');
-                    }
-                  });
-                } else {
-                  console.log('✅ isRead column already exists');
-                }
+                const columnNames = columns.map(col => col.name);
+                const columnsToAdd = [
+                  { name: 'isRead', sql: 'ALTER TABLE messages ADD COLUMN isRead INTEGER DEFAULT 0' },
+                  { name: 'reportId', sql: 'ALTER TABLE messages ADD COLUMN reportId INTEGER' },
+                  { name: 'isBridged', sql: 'ALTER TABLE messages ADD COLUMN isBridged INTEGER DEFAULT 0' },
+                  { name: 'discordThreadId', sql: 'ALTER TABLE messages ADD COLUMN discordThreadId TEXT' },
+                  { name: 'discordMessageId', sql: 'ALTER TABLE messages ADD COLUMN discordMessageId TEXT' }
+                ];
+
+                columnsToAdd.forEach(({ name, sql }) => {
+                  if (!columnNames.includes(name)) {
+                    console.log(`🔄 Adding missing ${name} column to messages table...`);
+                    db.run(sql, (alterErr) => {
+                      if (alterErr) {
+                        console.error(`❌ Failed to add ${name} column:`, alterErr.message);
+                      } else {
+                        console.log(`✅ Successfully added ${name} column`);
+                      }
+                    });
+                  } else {
+                    console.log(`✅ ${name} column already exists`);
+                  }
+                });
               }
             });
           }

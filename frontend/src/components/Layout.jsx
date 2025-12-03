@@ -6,10 +6,11 @@ import Notifications from './Notifications';
 import MessageButton from './MessageButton';
 import ToastContainer from './ToastContainer';
 import GlobalChat from './GlobalChat';
+import AlertModal from './AlertModal';
 import './Layout.css';
 
 const Layout = ({ children }) => {
-  const { user, logout, isModerator, toasts, removeToast } = useAuth();
+  const { user, logout, isModerator, toasts, removeToast, alert, hideAlert } = useAuth();
   const location = useLocation();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -164,6 +165,12 @@ const Layout = ({ children }) => {
       />
       <MessageButton />
       <ToastContainer toasts={toasts || []} removeToast={removeToast} />
+      <AlertModal
+        show={alert.show}
+        message={alert.message}
+        type={alert.type}
+        onClose={hideAlert}
+      />
     </div>
   );
 };

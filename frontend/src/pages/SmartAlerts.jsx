@@ -8,7 +8,7 @@ import AdvancedCategorySelect from '../components/AdvancedCategorySelect';
 import './SmartAlerts.css';
 
 const SmartAlerts = () => {
-  const { user } = useAuth();
+  const { user, showAlert } = useAuth();
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -45,7 +45,7 @@ const SmartAlerts = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!user) {
-      alert('Please log in to create alerts');
+      showAlert('Please log in to create alerts', 'warning');
       return;
     }
 
@@ -66,7 +66,7 @@ const SmartAlerts = () => {
       fetchAlerts();
     } catch (error) {
       console.error('Error creating alert:', error);
-      alert(error.response?.data?.error || 'Failed to create alert');
+      showAlert(error.response?.data?.error || 'Failed to create alert', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -80,7 +80,7 @@ const SmartAlerts = () => {
       fetchAlerts();
     } catch (error) {
       console.error('Error deleting alert:', error);
-      alert('Failed to delete alert');
+      showAlert('Failed to delete alert', 'error');
     }
   };
 

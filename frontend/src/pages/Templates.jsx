@@ -7,7 +7,7 @@ import SearchableSelect from '../components/SearchableSelect';
 import './Templates.css';
 
 const Templates = () => {
-  const { user } = useAuth();
+  const { user, showAlert } = useAuth();
   const navigate = useNavigate();
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -91,7 +91,7 @@ const Templates = () => {
       fetchTemplates();
     } catch (error) {
       console.error('Error saving template:', error);
-      alert('Failed to save template');
+      showAlert('Failed to save template', 'error');
     }
   };
 
@@ -102,7 +102,7 @@ const Templates = () => {
       fetchTemplates();
     } catch (error) {
       console.error('Error deleting template:', error);
-      alert('Failed to delete template');
+      showAlert('Failed to delete template', 'error');
     }
   };
 

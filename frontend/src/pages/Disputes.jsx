@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import './Disputes.css';
 
 const Disputes = () => {
-  const { user, isModerator } = useAuth();
+  const { user, isModerator, showAlert } = useAuth();
   const [disputes, setDisputes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -68,10 +68,10 @@ const Disputes = () => {
       setShowCreateForm(false);
       setFormData({ tradeId: '', accusedId: '', reason: '', evidence: [] });
       fetchDisputes();
-      alert('Dispute created successfully');
+      showAlert('Dispute created successfully', 'success');
     } catch (error) {
       console.error('Error creating dispute:', error);
-      alert(error.response?.data?.error || 'Failed to create dispute');
+      showAlert(error.response?.data?.error || 'Failed to create dispute', 'error');
     }
   };
 
@@ -81,7 +81,7 @@ const Disputes = () => {
       fetchDisputes();
     } catch (error) {
       console.error('Error updating dispute:', error);
-      alert('Failed to update dispute');
+      showAlert('Failed to update dispute', 'error');
     }
   };
 

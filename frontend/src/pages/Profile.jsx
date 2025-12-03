@@ -7,7 +7,7 @@ import './Profile.css';
 
 const Profile = () => {
   const { discordId } = useParams();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, showAlert } = useAuth();
   const [profile, setProfile] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -214,7 +214,7 @@ const Profile = () => {
                     setReviewTradeId(completedTrade.id);
                     setShowReviewForm(true);
                   } else {
-                    alert('You can only review users after completing a trade with them.');
+                    showAlert('You can only review users after completing a trade with them.', 'warning');
                   }
                 }}
                 className="add-review-btn"

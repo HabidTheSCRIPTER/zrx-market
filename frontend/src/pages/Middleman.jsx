@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import './Middleman.css';
 
 const Middleman = () => {
-  const { isModerator } = useAuth();
+  const { isModerator, showAlert } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('pending');
@@ -35,7 +35,7 @@ const Middleman = () => {
       fetchRequests();
     } catch (error) {
       console.error('Error updating status:', error);
-      alert(error.response?.data?.error || 'Error updating status');
+      showAlert(error.response?.data?.error || 'Error updating status', 'error');
     }
   };
 

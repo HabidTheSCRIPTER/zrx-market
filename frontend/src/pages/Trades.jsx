@@ -24,7 +24,7 @@ import './Trades.css';
 
 const Trades = () => {
 
-  const { user, openMessageOverlay } = useAuth();
+  const { user, openMessageOverlay, showAlert } = useAuth();
 
   const location = useLocation();
 
@@ -125,7 +125,7 @@ const Trades = () => {
 
     if (!user) {
 
-      alert('Please log in to add items to your wishlist');
+      showAlert('Please log in to add items to your wishlist', 'warning');
 
       return;
 
@@ -161,7 +161,7 @@ const Trades = () => {
 
       console.error('Error toggling wishlist:', error);
 
-      alert(error.response?.data?.error || 'Failed to update wishlist');
+      showAlert(error.response?.data?.error || 'Failed to update wishlist', 'error');
 
     }
 
@@ -295,7 +295,7 @@ const Trades = () => {
 
     navigator.clipboard.writeText(link);
 
-    alert('Link copied to clipboard!');
+    showAlert('Link copied to clipboard!', 'success');
 
   };
 
@@ -465,7 +465,7 @@ const Trades = () => {
 
     if (!user) {
 
-      alert('Please log in to create a trade');
+      showAlert('Please log in to create a trade', 'warning');
 
       return;
 
@@ -495,7 +495,7 @@ const Trades = () => {
 
       if (offeredItems.length === 0 || wantedItems.length === 0) {
 
-        alert('Please add at least one offered item and one wanted item');
+        showAlert('Please add at least one offered item and one wanted item', 'warning');
 
         setSubmitting(false);
 
@@ -533,13 +533,13 @@ const Trades = () => {
 
       fetchTrades();
 
-      alert('Trade created successfully!');
+      showAlert('Trade created successfully!', 'success');
 
     } catch (error) {
 
       console.error('Error creating trade:', error);
 
-      alert(error.response?.data?.error || 'Failed to create trade');
+      showAlert(error.response?.data?.error || 'Failed to create trade', 'error');
 
     } finally {
 
