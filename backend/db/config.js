@@ -389,6 +389,62 @@ function initDatabase() {
           }
         });
 
+        // Smart Alerts table
+        db.run(`CREATE TABLE IF NOT EXISTS smart_alerts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          userId TEXT NOT NULL,
+          name TEXT NOT NULL,
+          itemName TEXT NOT NULL,
+          gameCategory TEXT,
+          maxPrice TEXT,
+          minPrice TEXT,
+          priceUnit TEXT,
+          mutation TEXT,
+          traits TEXT,
+          isActive INTEGER DEFAULT 1,
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (userId) REFERENCES users(discordId)
+        )`, (err) => {
+          if (err) {
+            console.error('❌ Error creating smart_alerts table:', err.message);
+            hasError = true;
+            errors.push({ table: 'smart_alerts', error: err });
+          } else {
+            console.log('✅ Smart alerts table created/verified');
+          }
+        });
+
+        // News Updates table
+        db.run(`CREATE TABLE IF NOT EXISTS news_updates (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          date TEXT,
+          content TEXT NOT NULL,
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`, (err) => {
+          if (err) {
+            console.error('❌ Error creating news_updates table:', err.message);
+            hasError = true;
+            errors.push({ table: 'news_updates', error: err });
+          } else {
+            console.log('✅ News updates table created/verified');
+          }
+        });
+
+        // User Middleman Cooldowns table
+        db.run(`CREATE TABLE IF NOT EXISTS user_mm_cooldowns (
+          userId TEXT PRIMARY KEY,
+          lastRequestAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (userId) REFERENCES users(discordId)
+        )`, (err) => {
+          if (err) {
+            console.error('❌ Error creating user_mm_cooldowns table:', err.message);
+            hasError = true;
+            errors.push({ table: 'user_mm_cooldowns', error: err });
+          } else {
+            console.log('✅ User MM cooldowns table created/verified');
+          }
+        });
+
         // Messages table
         db.run(`CREATE TABLE IF NOT EXISTS messages (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
