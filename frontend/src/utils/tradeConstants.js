@@ -90,7 +90,7 @@ export const BRAINROT_IMAGES = {
   'Cooki and Milki': 'https://static.wikia.nocookie.net/stealabr/images/9/96/Cooki_and_Milki.png/revision/latest/scale-to-width-down/1000?cb=20251106173731',
   'LA GINGER SEKOLAH': 'https://static.wikia.nocookie.net/stealabr/images/e/e5/GingerSekolah.png/revision/latest?cb=20251125160827',
   'La Vacca Santa Clausino': 'https://steal-a-brainrot.org/images/brainrots/la-vacca-santa-clausino.webp',
-  'Headless Horseman': '' // Add image URL if available
+  'Headless Horseman': 'https://static.wikia.nocookie.net/stealabr/images/f/ff/Headlesshorseman.png/revision/latest?cb=20251030020338'
 };
 
 // Helper function to get image URL for a Brainrot item

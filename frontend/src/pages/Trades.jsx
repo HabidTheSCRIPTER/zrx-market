@@ -39,6 +39,8 @@ const Trades = () => {
   const [totalPages, setTotalPages] = useState(1);
 
   const [search, setSearch] = useState('');
+  const [gameCategory, setGameCategory] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
 
   const [showCreateForm, setShowCreateForm] = useState(false);
 
@@ -81,7 +83,7 @@ const Trades = () => {
 
     fetchTrades();
 
-  }, [page, search]);
+  }, [page, search, gameCategory, sortBy]);
 
 
 
@@ -245,7 +247,13 @@ const Trades = () => {
 
       const response = await axios.get('/api/trades', {
 
-        params: { page, limit: 20, search }
+        params: { 
+          page, 
+          limit: 20, 
+          search,
+          gameCategory: gameCategory || undefined,
+          sortBy: sortBy || 'newest'
+        }
 
       });
 
@@ -1473,26 +1481,86 @@ const Trades = () => {
 
 
 
-      <div className="search-bar">
+      <div className="modern-search-container">
+        <div className="search-bar-wrapper">
+          <div className="search-input-container">
+            <svg className="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.35-4.35"></path>
+            </svg>
+            <input
+              type="text"
+              className="modern-search-input"
+              placeholder="Search trades by item name..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
+            {search && (
+              <button 
+                className="clear-search-btn"
+                onClick={() => {
+                  setSearch('');
+                  setPage(1);
+                }}
+                aria-label="Clear search"
+              >
+                ×
+              </button>
+            )}
+          </div>
+        </div>
 
-        <input
+        <div className="filters-container">
+          <div className="filter-group">
+            <label className="filter-label">Category</label>
+            <select
+              className="filter-select"
+              value={gameCategory}
+              onChange={(e) => {
+                setGameCategory(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">All Categories</option>
+              <option value="ROBLOX">Roblox</option>
+              <option value="STEAL A BRAINROT">Steal a Brainrot</option>
+              <option value="GROW A GARDEN">Grow a Garden</option>
+            </select>
+          </div>
 
-          type="text"
+          <div className="filter-group">
+            <label className="filter-label">Sort By</label>
+            <select
+              className="filter-select"
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="views">Most Views</option>
+              <option value="favorites">Most Favorites</option>
+            </select>
+          </div>
 
-          placeholder="Search trades..."
-
-          value={search}
-
-          onChange={(e) => {
-
-            setSearch(e.target.value);
-
-            setPage(1);
-
-          }}
-
-        />
-
+          {(search || gameCategory) && (
+            <button
+              className="clear-filters-btn"
+              onClick={() => {
+                setSearch('');
+                setGameCategory('');
+                setPage(1);
+              }}
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? (

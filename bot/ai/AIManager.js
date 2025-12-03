@@ -328,9 +328,9 @@ class AIManager {
       return false;
     }
 
-    // Only respond when keyword "Nga" is mentioned (case-insensitive)
+    // Only respond when keyword "$" is mentioned
     const messageContent = message.cleanContent || message.content || '';
-    if (!messageContent.toLowerCase().includes('nga')) {
+    if (!messageContent.includes('$')) {
       return false;
     }
 
