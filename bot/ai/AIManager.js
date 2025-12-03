@@ -94,7 +94,7 @@ class AIManager {
         cache: true,
         temperature: 0.95, // Higher temperature for more creativity and variety
         model: 'llama-3.1-8b-instant',
-        maxTokens: 200, // Shorter responses for multiple messages
+        maxTokens: 150, // Very short responses for realistic texting
         onFailedAttempt: (error) => {
           console.error('Groq API error:', error);
           return 'Request failed! try again later';
@@ -474,7 +474,7 @@ class AIManager {
     text = text.trim();
     
     // If already short, return as is
-    if (text.length <= 150) {
+    if (text.length <= 80) {
       return [text];
     }
 
@@ -488,7 +488,7 @@ class AIManager {
       const trimmed = sentence.trim();
       
       // If adding this sentence would make it too long, start new message
-      if (currentMessage.length + trimmed.length + 1 > 150 && currentMessage.length > 0) {
+      if (currentMessage.length + trimmed.length + 1 > 80 && currentMessage.length > 0) {
         messages.push(currentMessage.trim());
         currentMessage = trimmed;
       } else {
@@ -504,20 +504,20 @@ class AIManager {
     // If still too long, split by commas or just force split
     const finalMessages = [];
     for (const msg of messages) {
-      if (msg.length <= 200) {
+      if (msg.length <= 80) {
         finalMessages.push(msg);
       } else {
-        // Force split at 150 chars
+        // Force split at 80 chars
         let remaining = msg;
-        while (remaining.length > 150) {
+        while (remaining.length > 80) {
           // Try to split at a natural break
-          let splitPoint = 150;
-          const lastSpace = remaining.lastIndexOf(' ', 150);
-          const lastComma = remaining.lastIndexOf(',', 150);
-          const lastPeriod = remaining.lastIndexOf('.', 150);
+          let splitPoint = 80;
+          const lastSpace = remaining.lastIndexOf(' ', 80);
+          const lastComma = remaining.lastIndexOf(',', 80);
+          const lastPeriod = remaining.lastIndexOf('.', 80);
           
           splitPoint = Math.max(lastSpace, lastComma, lastPeriod);
-          if (splitPoint < 100) splitPoint = 150; // If no good break, just split
+          if (splitPoint < 50) splitPoint = 80; // If no good break, just split
           
           finalMessages.push(remaining.substring(0, splitPoint).trim());
           remaining = remaining.substring(splitPoint).trim();
@@ -528,7 +528,7 @@ class AIManager {
       }
     }
     
-    return finalMessages.length > 0 ? finalMessages : [text.substring(0, 200)];
+    return finalMessages.length > 0 ? finalMessages : [text.substring(0, 80)];
   }
 }
 
