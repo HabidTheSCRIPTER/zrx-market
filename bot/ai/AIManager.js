@@ -494,8 +494,8 @@ class AIManager {
       const messages = this.splitIntoShortMessages(content);
       const singleMessage = messages[0]; // Only send the first message
       
-      // Send one message as reply
-      let replyMsg = await message.reply({ content: singleMessage });
+      // Send message with typing animation effect
+      let replyMsg = await this.sendMessageWithAnimation(message, singleMessage);
       
       const fullResponse = singleMessage;
 
@@ -513,6 +513,53 @@ class AIManager {
     } catch (error) {
       console.error('Error handling AI message:', error);
       return false;
+    }
+  }
+
+  // Send message with typing animation effect
+  async sendMessageWithAnimation(message, content) {
+    try {
+      // Send initial empty message to get message object
+      const replyMsg = await message.reply({ content: '...' });
+      
+      // Animate the message character by character for typing effect
+      let displayedText = '';
+      const chars = content.split('');
+      const delay = 30; // milliseconds per character
+      
+      for (let i = 0; i < chars.length; i++) {
+        displayedText += chars[i];
+        
+        // Update message every few characters to avoid rate limits
+        if (i % 3 === 0 || i === chars.length - 1) {
+          try {
+            await replyMsg.edit({ content: displayedText + (i < chars.length - 1 ? '▊' : '') });
+            await new Promise(resolve => setTimeout(resolve, delay * 3));
+          } catch (editError) {
+            // If edit fails, just send final message
+            if (i === chars.length - 1) {
+              await replyMsg.edit({ content: displayedText });
+            }
+          }
+        } else {
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+      
+      // Add a reaction for extra flair
+      try {
+        const reactions = ['💬', '✨', '🤖'];
+        const randomReaction = reactions[Math.floor(Math.random() * reactions.length)];
+        await replyMsg.react(randomReaction);
+      } catch (reactError) {
+        // Ignore reaction errors
+      }
+      
+      return replyMsg;
+    } catch (error) {
+      // Fallback to normal message if animation fails
+      console.error('Error with message animation:', error);
+      return await message.reply({ content: content });
     }
   }
 
