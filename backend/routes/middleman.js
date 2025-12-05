@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { dbHelpers } = require('../db/config');
 const { ensureAuth, ensureModerator, ensureVerified } = require('../middleware/auth');
-const { validateMiddleman } = require('../middleware/validation');
 const { formLimiter } = require('../middleware/rateLimit');
 
 // Get pending middleman requests (moderator only)
@@ -75,7 +74,7 @@ router.get('/:id', ensureAuth, async (req, res) => {
 });
 
 // Create middleman request (verified users only)
-router.post('/', ensureAuth, ensureVerified, formLimiter, validateMiddleman, async (req, res) => {
+router.post('/', ensureAuth, ensureVerified, formLimiter, async (req, res) => {
   try {
     const { user1, user2, item, value, proofLinks, robloxUsername } = req.body;
 
