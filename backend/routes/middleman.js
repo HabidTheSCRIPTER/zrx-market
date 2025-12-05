@@ -122,7 +122,7 @@ router.post('/request-from-chat', ensureAuth, ensureVerified, formLimiter, async
 
     // Get trade info
     const trade = await dbHelpers.get(
-      'SELECT creatorId FROM trades WHERE id = ?',
+      'SELECT creatorId, offered, wanted FROM trades WHERE id = ?',
       [tradeId]
     );
 
@@ -134,6 +134,23 @@ router.post('/request-from-chat', ensureAuth, ensureVerified, formLimiter, async
     // The creator is user1, the other party is user2
     const user1 = trade.creatorId;
     const user2 = currentUserId === user1 ? recipientId : currentUserId;
+
+    // Create item description from trade
+    let itemDescription = 'Trade items';
+    try {
+      const offered = JSON.parse(trade.offered || '[]');
+      const wanted = JSON.parse(trade.wanted || '[]');
+      const offeredNames = offered.map(item => item.name || 'Unknown').slice(0, 3).join(', ');
+      const wantedNames = wanted.map(item => item.name || 'Unknown').slice(0, 3).join(', ');
+      if (offeredNames && wantedNames) {
+        itemDescription = `${offeredNames} for ${wantedNames}`;
+        if (offered.length > 3 || wanted.length > 3) {
+          itemDescription += '...';
+        }
+      }
+    } catch (e) {
+      // Use default description if parsing fails
+    }
 
     // Check if current user is part of this trade
     if (currentUserId !== user1 && currentUserId !== user2) {
@@ -236,13 +253,14 @@ router.post('/request-from-chat', ensureAuth, ensureVerified, formLimiter, async
       const user2RequestedMM = isUser1 ? 0 : 1;
 
       const result = await dbHelpers.run(
-        `INSERT INTO middleman (requesterId, tradeId, user1, user2, user1RequestedMM, user2RequestedMM, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO middleman (requesterId, tradeId, user1, user2, item, user1RequestedMM, user2RequestedMM, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           currentUserId,
           tradeId,
           user1,
           user2,
+          itemDescription,
           user1RequestedMM,
           user2RequestedMM,
           'pending' // Will be set to pending when both request
