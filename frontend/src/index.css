@@ -5,21 +5,32 @@
 }
 
 :root {
-  --primary: #5865F2;
-  --primary-dark: #4752C4;
-  --secondary: #00D166;
-  --background: #0a0a0f;
-  --surface: #151520;
-  --surface-light: #1e1e2e;
-  --border: rgba(255, 255, 255, 0.1);
+  /* Dark Green Theme - Matching ZRX Logo */
+  --primary: #00ff41;
+  --primary-dark: #00cc33;
+  --primary-light: #33ff66;
+  --secondary: #00ff88;
+  --accent-green: #00ff41;
+  --accent-green-dark: #00cc33;
+  --accent-green-light: #66ff99;
+  --background: #0a0a0a;
+  --surface: #151515;
+  --surface-light: #1e1e1e;
+  --surface-dark: #0f0f0f;
+  --border: rgba(0, 255, 65, 0.2);
+  --border-light: rgba(0, 255, 65, 0.1);
   --text-primary: #ffffff;
-  --text-secondary: #b0b0b8;
-  --text-muted: #6b6b7a;
-  --gradient-primary: linear-gradient(135deg, #5865F2 0%, #8B5CF6 100%);
-  --gradient-secondary: linear-gradient(135deg, #00D166 0%, #00B8E6 100%);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --text-secondary: #b0b0b0;
+  --text-muted: #6b6b6b;
+  --text-green: #00ff41;
+  --gradient-primary: linear-gradient(135deg, #00ff41 0%, #00ff88 100%);
+  --gradient-secondary: linear-gradient(135deg, #00cc33 0%, #00ff41 100%);
+  --gradient-green: linear-gradient(135deg, rgba(0, 255, 65, 0.2) 0%, rgba(0, 255, 136, 0.1) 100%);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.7);
+  --shadow-green: 0 0 20px rgba(0, 255, 65, 0.3);
+  --shadow-green-glow: 0 0 30px rgba(0, 255, 65, 0.5);
 }
 
 body {
@@ -30,14 +41,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: var(--background);
   background-image: 
-    radial-gradient(at 0% 0%, rgba(88, 101, 242, 0.1) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.1) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(0, 255, 65, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(0, 255, 136, 0.08) 0px, transparent 50%);
   background-attachment: fixed;
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
   /* Improve touch interactions on mobile */
-  -webkit-tap-highlight-color: rgba(88, 101, 242, 0.2);
+  -webkit-tap-highlight-color: rgba(0, 255, 65, 0.2);
   touch-action: manipulation;
 }
 
@@ -211,10 +222,19 @@ html {
 
 @keyframes glow {
   0%, 100% {
-    box-shadow: 0 0 5px rgba(88, 101, 242, 0.5);
+    box-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
   }
   50% {
-    box-shadow: 0 0 20px rgba(88, 101, 242, 0.8), 0 0 30px rgba(88, 101, 242, 0.6);
+    box-shadow: 0 0 20px rgba(0, 255, 65, 0.8), 0 0 30px rgba(0, 255, 65, 0.6);
+  }
+}
+
+@keyframes green-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(0, 255, 65, 0.4), 0 0 20px rgba(0, 255, 65, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 255, 65, 0.8), 0 0 40px rgba(0, 255, 65, 0.4);
   }
 }
 
@@ -275,7 +295,7 @@ html {
 
 /* Loading Spinner */
 .spinner {
-  border: 3px solid rgba(88, 101, 242, 0.2);
+  border: 3px solid rgba(0, 255, 65, 0.2);
   border-top: 3px solid var(--primary);
   border-radius: 50%;
   width: 40px;
@@ -286,7 +306,7 @@ html {
 
 /* Skeleton Loading */
 .skeleton {
-  background: linear-gradient(90deg, #1e1e2e 25%, #2a2a3e 50%, #1e1e2e 75%);
+  background: linear-gradient(90deg, #1e1e1e 25%, #2a2a2a 50%, #1e1e1e 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 8px;
@@ -294,10 +314,10 @@ html {
 
 /* Glassmorphism Effect */
 .glass {
-  background: rgba(30, 30, 46, 0.7);
+  background: rgba(21, 21, 21, 0.8);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 255, 65, 0.2);
 }
 
 /* Hover Lift Effect */
