@@ -19,9 +19,10 @@ const Layout = ({ children }) => {
   useEffect(() => {
     if (user) {
       fetchUnreadCount();
+      // Real-time polling for notifications - poll every 5 seconds
       const interval = setInterval(() => {
         fetchUnreadCount();
-      }, 15000); // Poll every 15 seconds (reduced frequency)
+      }, 5000); // Poll every 5 seconds for real-time updates
       return () => clearInterval(interval);
     }
   }, [user]);

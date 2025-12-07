@@ -85,6 +85,17 @@ const Trades = () => {
 
   }, [page, search, gameCategory, sortBy]);
 
+  // Real-time polling for trades updates
+  useEffect(() => {
+    if (!showCreateForm) {
+      const interval = setInterval(() => {
+        fetchTrades();
+      }, 10000); // Poll every 10 seconds for new trades
+
+      return () => clearInterval(interval);
+    }
+  }, [showCreateForm, page, search, gameCategory, sortBy]);
+
 
 
   useEffect(() => {

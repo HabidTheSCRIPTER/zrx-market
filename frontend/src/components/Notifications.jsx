@@ -13,9 +13,11 @@ const Notifications = ({ isOpen, onClose }) => {
     if (isOpen && user) {
       fetchNotifications();
       fetchUnreadCount();
+      // Poll for new notifications every 3 seconds when panel is open
       const interval = setInterval(() => {
+        fetchNotifications();
         fetchUnreadCount();
-      }, 5000);
+      }, 3000);
       return () => clearInterval(interval);
     }
   }, [isOpen, user]);

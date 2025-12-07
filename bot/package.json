@@ -14,7 +14,8 @@
     "@langchain/groq": "^0.0.8",
     "@langchain/core": "^0.1.57",
     "groq-sdk": "^0.3.3",
-    "common-tags": "^1.8.2"
+    "common-tags": "^1.8.2",
+    "axios": "^1.6.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

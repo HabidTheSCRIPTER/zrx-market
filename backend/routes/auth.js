@@ -114,10 +114,17 @@ router.get('/me', async (req, res) => {
       res.json({ user: null, inGuild: false });
     }
   } else {
-      // User not authenticated - clear any invalid session
-      if (req.sessionID) {
-        console.log('⚠️  User not authenticated, clearing session:', req.sessionID);
-        req.session.destroy(() => {});
+      // User not authenticated - but don't aggressively clear session
+      // Only clear if session is explicitly invalid or expired
+      // This prevents clearing valid sessions that are just being checked
+      if (req.sessionID && req.session.cookie && req.session.cookie.expires) {
+        const expires = new Date(req.session.cookie.expires);
+        if (expires < new Date()) {
+          // Session expired, safe to clear
+          console.log('⚠️  Session expired, clearing:', req.sessionID);
+          req.session.destroy(() => {});
+        }
+        // Otherwise, keep session for potential re-authentication
       }
     res.json({ user: null, inGuild: false });
   }

@@ -76,14 +76,15 @@ const db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READWRITE | sqlite3.OPEN_C
     });
     
     // Periodic WAL checkpoint to ensure data is persisted
-    // Checkpoint every 30 seconds to ensure data is written to disk
+    // Checkpoint every 15 seconds to ensure data is written to disk more frequently
     setInterval(() => {
       db.run('PRAGMA wal_checkpoint(TRUNCATE);', (checkpointErr) => {
-        if (checkpointErr) {
+        if (checkpointErr && !checkpointErr.message.includes('SQLITE_LOCKED')) {
+          // SQLITE_LOCKED is expected during concurrent operations, ignore it
           console.warn('⚠️  WAL checkpoint warning (non-critical):', checkpointErr.message);
         }
       });
-    }, 30000); // Every 30 seconds
+    }, 15000); // Every 15 seconds for better persistence
   }
 });
 
@@ -769,8 +770,17 @@ const dbHelpers = {
         if (err) {
           reject(err);
         } else {
-          // Resolve immediately - WAL mode handles persistence
-          // Periodic checkpointing is handled separately
+          // For write operations, ensure data is persisted
+          // WAL mode handles most of this, but we can force a checkpoint for critical writes
+          if (query.trim().toUpperCase().startsWith('INSERT') || 
+              query.trim().toUpperCase().startsWith('UPDATE') || 
+              query.trim().toUpperCase().startsWith('DELETE')) {
+            // Critical write - ensure it's persisted
+            // WAL mode will handle this, but we log for debugging
+            if (process.env.NODE_ENV === 'development') {
+              console.log('✅ Database write completed:', query.substring(0, 50) + '...');
+            }
+          }
           resolve({ lastID: this.lastID, changes: this.changes });
         }
       });

@@ -14,6 +14,13 @@ const Dashboard = () => {
   useEffect(() => {
     if (user) {
       fetchDashboardData();
+      
+      // Real-time polling for dashboard updates
+      const interval = setInterval(() => {
+        fetchDashboardData();
+      }, 15000); // Poll every 15 seconds for updates
+      
+      return () => clearInterval(interval);
     } else {
       // If no user but we're on dashboard, check auth again
       setLoading(false);
