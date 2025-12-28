@@ -43,31 +43,34 @@ In the **"Bot"** section, scroll down to **"Privileged Gateway Intents"** and en
 
 ### Step 5: Invite Bot to Server
 
-**Since your bot is Private, use this manual invite URL:**
+**⚠️ IMPORTANT: Skip the OAuth2 URL Generator! It doesn't work for private bots.**
 
-1. Go to **"OAuth2"** → **"General"**
-2. Copy your **"Client ID"** (Application ID)
-3. Create invite URL manually using this format:
+Since your bot is **Private**, you **CANNOT** use the OAuth2 URL Generator. That's fine - just use the manual invite URL below!
+
+**Manual Invite URL Method:**
+
+1. Go to **"OAuth2"** → **"General"** (just to get your Client ID)
+2. Copy your **"Client ID"** (Application ID) - you already have this: `1454975799907193078`
+3. Use this URL format (already filled in with your Client ID):
 
 ```
-https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=8&scope=bot%20applications.commands
+https://discord.com/api/oauth2/authorize?client_id=1454975799907193078&permissions=8&scope=bot%20applications.commands
 ```
 
-**OR use this URL with all permissions:**
+**OR use this URL with specific permissions (recommended):**
 ```
-https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=274877906944&scope=bot%20applications.commands
+https://discord.com/api/oauth2/authorize?client_id=1454975799907193078&permissions=274877906944&scope=bot%20applications.commands
 ```
 
-**Replace `YOUR_CLIENT_ID`** with your actual Client ID from Step 2.
-
-4. Open the URL in your browser
+4. **Copy and paste the URL above into your browser**
 5. Select your "Miss Death" server
-6. Authorize the bot
-7. Make sure bot role is **ABOVE** any roles you want it to manage
+6. Click "Authorize"
+7. Done! Bot is now in your server
+8. **Important:** Make sure bot role is **ABOVE** any roles you want it to manage (drag it up in Server Settings → Roles)
 
-**Required Permissions Breakdown:**
-- **Administrator (8)** - Gives all permissions (easiest option)
-- **Or use permissions: 274877906944** which includes:
+**Permissions Breakdown:**
+- **`permissions=8`** = Administrator (gives all permissions - easiest)
+- **`permissions=274877906944`** = Specific permissions:
   - Manage Channels
   - Manage Roles  
   - Send Messages
@@ -78,16 +81,19 @@ https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=27
   - Kick Members
   - Manage Messages
 
-### Step 6: (Optional) OAuth2 for Website Login
+**✅ You don't need to touch the OAuth2 URL Generator at all! Just use the manual URL above.**
 
-**Note:** If you're NOT using the website/login features, you can skip this step!
+### Step 6: (Optional) OAuth2 Redirects for Website Login
 
-If you need OAuth2 for website login (like the trading site):
-1. Go to **"OAuth2"** → **"General"**
-2. Copy your **"Client ID"** and **"Client Secret"** (if needed)
-3. Go to **"OAuth2"** → **"Redirects"**
-4. Add your redirect URL (e.g., `https://your-domain.com/auth/discord/callback`)
-5. **Important:** Private bots can still have OAuth2 redirects for your own application
+**Skip this if you're only using the bot (not the website).**
+
+If you need OAuth2 for website login features:
+1. Go to **"OAuth2"** → **"Redirects"**
+2. Click **"Add Redirect"**
+3. Add your redirect URL (e.g., `https://your-domain.com/auth/discord/callback`)
+4. **This works fine for private bots** - redirects are allowed
+
+**Note:** The "URL Generator" tab won't work, but the "Redirects" tab works fine!
 
 ---
 
